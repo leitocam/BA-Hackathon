@@ -4,6 +4,7 @@ import "./globals.css";
 import { Providers } from "./providers";
 import Navbar from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
+import { NetworkWarning } from "@/components/web3";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,6 +32,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-musicus-bg-primary text-musicus-text-primary`}
       >
         <Providers>
+          <NetworkWarning />
           <div className="flex flex-col min-h-screen">
             <Navbar />
             <main className="flex-1">
