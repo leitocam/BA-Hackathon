@@ -1,0 +1,6 @@
+@ArkivBackend_HostAddress = http://localhost:5273
+
+GET {{ArkivBackend_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
