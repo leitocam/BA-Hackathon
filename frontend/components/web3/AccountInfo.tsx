@@ -2,6 +2,7 @@
 
 import { useAccount, useDisconnect, useBalance } from 'wagmi'
 import { useEffect, useState } from 'react'
+import { formatUnits } from 'viem'
 
 export function AccountInfo() {
   const { address, isConnected } = useAccount()
@@ -35,7 +36,7 @@ export function AccountInfo() {
           }}
         >
           <span className="text-[13px]" style={{ color: '#C2CAD7' }}>
-            {parseFloat(balance.formatted).toFixed(4)} {balance.symbol}
+            {parseFloat(formatUnits(balance.value, balance.decimals)).toFixed(4)} {balance.symbol}
           </span>
         </div>
       )}
