@@ -8,7 +8,7 @@ export interface Collaborator {
   role: 'Artista' | 'Productor' | 'Diseñador' | 'Compositor' | 'Ingeniero' | 'Otro';
   percentage: number; // 0-100
   walletAddress?: string; // Si tiene wallet propio
-  crossmintEmail?: string; // Si usa Crossmint (sin wallet)
+  crossmintEmail?: string; // Si usa Crossmint (sin wallet) - para custodia
 }
 
 export interface SongMetadata {

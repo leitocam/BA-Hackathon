@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@arkiv-network/sdk": "^0.4.5",
+    "@crossmint/client-sdk-react-ui": "^2.6.3",
     "@tanstack/react-query": "^5.90.10",
     "dotenv": "^17.2.3",
     "next": "16.0.3",

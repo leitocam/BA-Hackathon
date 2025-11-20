@@ -15,7 +15,27 @@ export async function POST(request: NextRequest) {
     console.log('Title:', songTitle);
     console.log('Collaborators:', collaborators.length);
 
-    // 1. Conectar al Factory
+    // 1.5 CROSSMINT: Procesar emails y crear wallets custodiales
+    const processedCollaborators = collaborators.map((c: any) => {
+      if (c.useCrossmint && c.crossmintEmail) {
+        // Para demo: Generar wallet determinista desde email
+        // En producción: Llamar a Crossmint API para crear wallet custodiada
+        const emailHash = ethers.keccak256(ethers.toUtf8Bytes(c.crossmintEmail));
+        const custodialWallet = ethers.HDNodeWallet.fromSeed(emailHash);
+        
+        console.log(`💳 Crossmint: Email ${c.crossmintEmail} → Wallet ${custodialWallet.address}`);
+        
+        return {
+          ...c,
+          walletAddress: custodialWallet.address,
+          crossmintCustodial: true, // Flag para identificar wallets custodiales
+          crossmintEmail: c.crossmintEmail
+        };
+      }
+      return c;
+    });
+
+    // 2. Conectar al Factory
     const provider = new ethers.JsonRpcProvider(RPC, {
       chainId: 534351,
       name: 'scroll-sepolia'
@@ -31,13 +51,13 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Wallet conectada:', wallet.address);
 
-    // 2. Preparar datos para el contrato
-    const recipients = collaborators.map((c: any) => 
+    // 3. Preparar datos para el contrato
+    const recipients = processedCollaborators.map((c: any) => 
       ethers.getAddress(c.walletAddress)
     );
     // IMPORTANTE: El contrato espera basis points (percentage * 100)
     // Ejemplo: 50% = 5000 basis points
-    const percentages = collaborators.map((c: any) => BigInt(c.percentage * 100));
+    const percentages = processedCollaborators.map((c: any) => BigInt(c.percentage * 100));
     
     const symbol = songTitle
       .toUpperCase()
@@ -49,8 +69,9 @@ export async function POST(request: NextRequest) {
     console.log('  - Symbol:', symbol);
     console.log('  - Recipients:', recipients);
     console.log('  - Percentages (basis points):', percentages);
+    console.log('  - Crossmint emails:', processedCollaborators.filter((c: any) => c.crossmintCustodial).map((c: any) => c.crossmintEmail));
 
-    // 3. Crear canción en blockchain
+    // 4. Crear canción en blockchain
     const tx = await factory.createSong(
       songTitle,
       symbol,
@@ -63,7 +84,7 @@ export async function POST(request: NextRequest) {
     const receipt = await tx.wait();
     console.log('✅ TX confirmada en bloque:', receipt.blockNumber);
 
-    // 4. Parsear evento para obtener direcciones
+    // 5. Parsear evento para obtener direcciones
     let songNFT = '';
     let revenueSplitter = '';
 
@@ -94,23 +115,25 @@ export async function POST(request: NextRequest) {
       throw new Error('No se pudieron obtener las direcciones de los contratos del evento SongCreated');
     }
 
-    // 5. Guardar metadata en Arkiv
+    // 6. Guardar metadata en Arkiv
     console.log('💾 Guardando metadata en Arkiv...');
     
     const arkivResult = await songMetadataService.saveSongMetadata({
       songTitle,
-      artist: artist || collaborators[0]?.name || 'Unknown Artist',
+      artist: artist || processedCollaborators[0]?.name || 'Unknown Artist',
       genre: genre || 'Hip Hop',
       releaseDate: new Date().toISOString(),
       coverImageUrl: coverImageUrl || '',
       audioUrl: audioUrl || '',
       nftContractAddress: songNFT,
       tokenId: '1',
-      collaborators: collaborators.map((c: any) => ({
+      collaborators: processedCollaborators.map((c: any) => ({
         name: c.name,
         role: c.role as any,
         percentage: c.percentage,
-        walletAddress: c.walletAddress
+        walletAddress: c.walletAddress,
+        crossmintEmail: c.crossmintEmail, // Guardamos email si existe
+        useCrossmint: c.useCrossmint || false
       }))
     });
 
@@ -118,7 +141,7 @@ export async function POST(request: NextRequest) {
     console.log('  - Entity Key:', arkivResult.entityKey);
     console.log('  - Metadata URI:', arkivResult.metadataUri);
 
-    // 6. Retornar todo
+    // 7. Retornar todo
     return NextResponse.json({
       success: true,
       data: {
@@ -132,7 +155,7 @@ export async function POST(request: NextRequest) {
           txHash: arkivResult.txHash,
           expiresAt: arkivResult.expiresAt
         },
-        collaborators: collaborators.map((c: any, i: number) => ({
+        collaborators: processedCollaborators.map((c: any, i: number) => ({
           ...c,
           contractAddress: recipients[i]
         }))

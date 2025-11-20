@@ -10,6 +10,8 @@ interface TeamMember {
   name: string
   role: string
   walletAddress: string
+  crossmintEmail?: string // Para usuarios sin wallet
+  useCrossmint: boolean // Toggle para modo Crossmint
   percentage: number
 }
 
@@ -38,6 +40,8 @@ export default function CreateSongPage() {
       name: '',
       role: '',
       walletAddress: '',
+      crossmintEmail: '',
+      useCrossmint: false,
       percentage: 0,
     }
   ])
@@ -45,7 +49,10 @@ export default function CreateSongPage() {
   const [currentStep, setCurrentStep] = useState<'info' | 'team'>('info')
 
   const totalPercentage = team.reduce((sum, member) => sum + (member.percentage || 0), 0)
-  const isValid = totalPercentage === 100 && team.every(m => m.name && m.role && m.walletAddress && m.percentage > 0)
+  const isValid = totalPercentage === 100 && team.every(m => {
+    const hasIdentifier = m.useCrossmint ? m.crossmintEmail : m.walletAddress
+    return m.name && m.role && hasIdentifier && m.percentage > 0
+  })
 
   const addTeamMember = () => {
     setTeam([...team, {
@@ -53,6 +60,8 @@ export default function CreateSongPage() {
       name: '',
       role: '',
       walletAddress: '',
+      crossmintEmail: '',
+      useCrossmint: false,
       percentage: 0,
     }])
   }
@@ -63,7 +72,7 @@ export default function CreateSongPage() {
     }
   }
 
-  const updateTeamMember = (id: string, field: keyof TeamMember, value: string | number) => {
+  const updateTeamMember = (id: string, field: keyof TeamMember, value: string | number | boolean) => {
     setTeam(team.map(member => 
       member.id === id ? { ...member, [field]: value } : member
     ))
@@ -102,6 +111,7 @@ export default function CreateSongPage() {
       // Llamar a la API del backend que hace todo:
       // 1. Llama al Factory en blockchain
       // 2. Guarda metadata en Arkiv
+      // 3. (NUEVO) Procesa emails de Crossmint si hay
       const response = await fetch('/api/songs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -115,6 +125,8 @@ export default function CreateSongPage() {
             name: m.name,
             role: m.role,
             walletAddress: m.walletAddress,
+            crossmintEmail: m.crossmintEmail,
+            useCrossmint: m.useCrossmint,
             percentage: m.percentage
           }))
         })
@@ -398,40 +410,88 @@ export default function CreateSongPage() {
                         </div>
                       </div>
 
-                      <div className="mb-4">
-                        <label className="block text-[13px] font-medium mb-2" style={{ color: '#C2CAD7' }}>
-                          Dirección de billetera
-                          <span className="ml-2 text-[12px]" style={{ color: '#8E8E93' }}>
-                            (donde recibirá los pagos)
-                          </span>
+                      {/* Toggle Crossmint */}
+                      <div className="mb-4 p-3 rounded-[10px]" style={{ background: 'rgba(52, 199, 89, 0.1)', borderLeft: '3px solid #34C759' }}>
+                        <label className="flex items-center gap-3 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={member.useCrossmint}
+                            onChange={(e) => updateTeamMember(member.id, 'useCrossmint', e.target.checked)}
+                            className="w-5 h-5"
+                          />
+                          <div>
+                            <div className="text-[14px] font-semibold" style={{ color: '#34C759' }}>
+                              💳 Sin wallet? Usa Crossmint
+                            </div>
+                            <div className="text-[12px]" style={{ color: '#C2CAD7' }}>
+                              Colaborador recibirá pagos vía email (custodia de Crossmint)
+                            </div>
+                          </div>
                         </label>
-                        <input
-                          type="text"
-                          value={member.walletAddress}
-                          onChange={(e) => updateTeamMember(member.id, 'walletAddress', e.target.value)}
-                          placeholder="0x..."
-                          className="w-full h-[44px] px-3 rounded-[10px] border text-[14px] font-mono"
-                          style={{
-                            background: 'rgba(28, 28, 30, 0.8)',
-                            borderColor: 'rgba(255, 255, 255, 0.2)',
-                            color: '#FFFFFF',
-                          }}
-                          required
-                        />
-                        {index === 0 && (
-                          <button
-                            type="button"
-                            onClick={() => address && updateTeamMember(member.id, 'walletAddress', address)}
-                            className="text-[12px] mt-2 px-3 py-1 rounded-[6px]"
-                            style={{
-                              background: 'rgba(252, 60, 68, 0.1)',
-                              color: '#FC3C44',
-                            }}
-                          >
-                            Usar mi dirección
-                          </button>
-                        )}
                       </div>
+
+                      {/* Campo condicional: Wallet o Email */}
+                      {!member.useCrossmint ? (
+                        <div className="mb-4">
+                          <label className="block text-[13px] font-medium mb-2" style={{ color: '#C2CAD7' }}>
+                            Dirección de billetera
+                            <span className="ml-2 text-[12px]" style={{ color: '#8E8E93' }}>
+                              (donde recibirá los pagos)
+                            </span>
+                          </label>
+                          <input
+                            type="text"
+                            value={member.walletAddress}
+                            onChange={(e) => updateTeamMember(member.id, 'walletAddress', e.target.value)}
+                            placeholder="0x..."
+                            className="w-full h-[44px] px-3 rounded-[10px] border text-[14px] font-mono"
+                            style={{
+                              background: 'rgba(28, 28, 30, 0.8)',
+                              borderColor: 'rgba(255, 255, 255, 0.2)',
+                              color: '#FFFFFF',
+                            }}
+                            required
+                          />
+                          {index === 0 && (
+                            <button
+                              type="button"
+                              onClick={() => address && updateTeamMember(member.id, 'walletAddress', address)}
+                              className="text-[12px] mt-2 px-3 py-1 rounded-[6px]"
+                              style={{
+                                background: 'rgba(252, 60, 68, 0.1)',
+                                color: '#FC3C44',
+                              }}
+                            >
+                              Usar mi dirección
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="mb-4">
+                          <label className="block text-[13px] font-medium mb-2" style={{ color: '#C2CAD7' }}>
+                            Email del colaborador
+                            <span className="ml-2 text-[12px]" style={{ color: '#8E8E93' }}>
+                              (Crossmint creará wallet y enviará instrucciones)
+                            </span>
+                          </label>
+                          <input
+                            type="email"
+                            value={member.crossmintEmail || ''}
+                            onChange={(e) => updateTeamMember(member.id, 'crossmintEmail', e.target.value)}
+                            placeholder="colaborador@email.com"
+                            className="w-full h-[44px] px-3 rounded-[10px] border text-[14px]"
+                            style={{
+                              background: 'rgba(28, 28, 30, 0.8)',
+                              borderColor: 'rgba(52, 199, 89, 0.3)',
+                              color: '#FFFFFF',
+                            }}
+                            required
+                          />
+                          <p className="text-[11px] mt-2" style={{ color: '#34C759' }}>
+                            🔒 Crossmint guardará los fondos de forma segura hasta que el usuario los reclame
+                          </p>
+                        </div>
+                      )}
 
                       <div>
                         <label className="block text-[13px] font-medium mb-2" style={{ color: '#C2CAD7' }}>
