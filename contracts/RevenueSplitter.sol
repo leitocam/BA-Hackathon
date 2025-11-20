@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 contract RevenueSplitter {
     address[] public recipients;
-    uint256[] public percentages; // base 10000 (100% = 10000)
+    uint256[] public percentages;
 
     constructor(address[] memory _recipients, uint256[] memory _percentages) {
         require(_recipients.length == _percentages.length, "len mismatch");
@@ -19,7 +19,6 @@ contract RevenueSplitter {
     }
 
     receive() external payable {
-        // Mimic puede mirar este evento (aunque no es necesario emitir uno)
     }
 
     function distribute() external {
@@ -28,9 +27,9 @@ contract RevenueSplitter {
 
         for (uint256 i = 0; i < recipients.length; i++) {
             uint256 amount = (bal * percentages[i]) / 10000;
-            // Se usa call en lugar de transfer, ya que transfer está obsoleto y limitado a 2300 gas
             (bool success, ) = recipients[i].call{value: amount}("");
             require(success, "ETH transfer failed");
         }
     }
+
 }
