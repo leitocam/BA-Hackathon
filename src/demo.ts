@@ -13,14 +13,14 @@ import { songMetadataService } from './services/SongMetadataService';
 import type { CreateSongRequest } from './models/SongMetadata';
 
 async function runDemo() {
-  console.log('🎵 ========================================');
-  console.log('🎵 SPLITTRACK MVP DEMO - 24H HACKATHON');
-  console.log('🎵 ========================================\n');
+  console.log('========================================');
+  console.log('MUSICI.US MVP DEMO - HACKATHON TIERRA DE BUILDERS');
+  console.log('========================================\n');
   
   // ========================================
   // 1. CREAR COLABORADORES
   // ========================================
-  console.log('👥 Paso 1: Definiendo colaboradores...\n');
+  console.log('Paso 1: Definiendo colaboradores...\n');
   
   const colaboradores = [
     {
@@ -39,7 +39,7 @@ async function runDemo() {
       name: 'Visual Artist',
       role: 'Diseñador' as const,
       percentage: 10,
-      crossmintEmail: 'designer@splittrack.music' // SIN WALLET - usa Crossmint
+      crossmintEmail: 'designer@musici.us' // SIN WALLET - usa Crossmint
     }
   ];
   
@@ -57,18 +57,18 @@ async function runDemo() {
   // ========================================
   // 2. CREAR CANCIÓN
   // ========================================
-  console.log('🎵 Paso 2: Creando canción "SplitTrack – Demo Beat"...\n');
+  console.log('Paso 2: Creando canción "MusiciUS – Demo Beat"...\n');
   
-  const songRequest: CreateSongRequest = {
-    songTitle: 'SplitTrack – Demo Beat',
+  const songData: CreateSongRequest = {
+    songTitle: 'MusiciUS – Demo Beat',
     artist: 'DJ Arkiv',
-    album: 'Hackathon Beats Vol. 1',
+    album: 'Tierra de Builders Beats Vol. 1',
     genre: 'Electronic',
     releaseDate: new Date().toISOString(),
     coverImageUrl: 'https://example.com/cover.jpg', // Placeholder
     audioUrl: 'https://example.com/audio.mp3', // Placeholder
     collaborators: colaboradores,
-    description: 'Demo beat created for 24h hackathon with automatic revenue splits',
+    description: 'Demo beat created for Hackathon Tierra de Builders with automatic revenue splits',
     nftContractAddress: '0x0000000000000000000000000000000000000000', // Placeholder - DEV A lo llenará
     tokenId: '1' // Placeholder
   };
@@ -76,10 +76,10 @@ async function runDemo() {
   // ========================================
   // 3. GUARDAR EN ARKIV CON TTL 6 MESES
   // ========================================
-  console.log('💾 Paso 3: Guardando metadata en Arkiv con TTL = 6 meses...\n');
+  console.log('Paso 3: Guardando metadata en Arkiv con TTL = 6 meses...\\n');
   
   try {
-    const result = await songMetadataService.saveSongMetadata(songRequest);
+    const result = await songMetadataService.saveSongMetadata(songData);
     
     console.log('✅ ¡METADATA GUARDADA EN ARKIV!\n');
     console.log('📋 Detalles de la transacción:');

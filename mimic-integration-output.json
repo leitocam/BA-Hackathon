@@ -1,0 +1,43 @@
+{
+  "timestamp": "2025-11-20T13:47:46.079Z",
+  "chainId": 534351,
+  "factory": "0xE76920eaB8C76d6aa6191E3413DeF78073Fa0c66",
+  "songNFT": "0xF55Bea7BdF035231309C59180E56F7117c6a6305",
+  "revenueSplitter": "0x66dE53DF133270Dc36785093d827F28c079a5eC0",
+  "metadataURI": "arkiv://0x9d56f20e9457d37d49eebeacec3e34f6fa230cea8b96da8173b14076d9ff9c4d",
+  "arkivEntityKey": "0x9d56f20e9457d37d49eebeacec3e34f6fa230cea8b96da8173b14076d9ff9c4d",
+  "agreementHash": "0x33c21eb7071c0d360ff16fe2447f1857a82f7945c137749d3bc670ca9c7940d9",
+  "collaborators": [
+    {
+      "name": "DJ Arkiv",
+      "role": "Artista",
+      "percentage": 60,
+      "walletAddress": "0xa977778542aef499aeb9c891845d7a3ba26ac151"
+    },
+    {
+      "name": "BeatMaker Pro",
+      "role": "Productor",
+      "percentage": 30,
+      "walletAddress": "0x742d35cc6634c0532925a3b844bc9e7595f0beb0"
+    },
+    {
+      "name": "Visual Artist",
+      "role": "Diseñador",
+      "percentage": 10,
+      "walletAddress": "0x8626f6940e2eb28930efb4cef49b2d1f2c9c1199",
+      "crossmintEmail": "artist@musici.us"
+    }
+  ],
+  "explorerUrl": "https://sepolia.scrollscan.com/address/0x66dE53DF133270Dc36785093d827F28c079a5eC0",
+  "mimicConfig": {
+    "contract": "0x66dE53DF133270Dc36785093d827F28c079a5eC0",
+    "trigger": {
+      "type": "balance-change",
+      "condition": "balance > 0"
+    },
+    "action": {
+      "function": "distribute",
+      "params": []
+    }
+  }
+}

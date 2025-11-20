@@ -1,21 +1,25 @@
 {
   "name": "mi-proyecto-arkiv",
   "version": "1.0.0",
-  "description": "",
+  "description": "MusiciUS - Arkiv Integration for Music NFT Revenue Splits",
   "main": "index.js",
   "scripts": {
+    "demo": "npx tsx src/demo.ts",
+    "server": "npx tsx src/server.ts",
+    "mimic": "npx tsx src/mimic-integration.ts",
+    "simulate": "npx tsx src/simulate-mimic.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": ["arkiv", "nft", "music", "revenue-split", "mimic", "crossmint"],
+  "author": "DEV C - MusiciUS Team",
+  "license": "MIT",
   "type": "commonjs",
   "dependencies": {
     "@arkiv-network/sdk": "^0.4.5",
     "dotenv": "^17.2.3",
-    "express": "^5.1.0"
+    "ethers": "^6.15.0"
   },
   "devDependencies": {
-    "@types/express": "^5.0.5"
+    "@types/node": "^20.0.0"
   }
 }

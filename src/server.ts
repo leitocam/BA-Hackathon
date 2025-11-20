@@ -10,7 +10,7 @@ const port = 3000;
 app.use(express.json());
 
 // ========================================
-// ENDPOINTS PARA MÚSICA / SPLITTRACK
+// ENDPOINTS PARA MÚSICA / MUSICIÚS
 // ========================================
 
 /**
@@ -153,10 +153,10 @@ app.post('/create-entity', async (req, res) => {
 // ========================================
 
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', service: 'SplitTrack API', timestamp: new Date().toISOString() });
+  res.json({ status: 'ok', service: 'MusiciUS API', timestamp: new Date().toISOString() });
 });
 
 app.listen(port, () => {
-  console.log(`🎵 SplitTrack API escuchando en http://localhost:${port}`);
-  console.log(`📊 Health check: http://localhost:${port}/health`);
+  console.log(`MusiciUS API listening on http://localhost:${port}`);
+  console.log(`Health check: http://localhost:${port}/health`);
 });
