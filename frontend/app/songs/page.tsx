@@ -2,25 +2,58 @@
 
 import { useAccount } from 'wagmi'
 import Link from 'next/link'
+import { useState, useEffect } from 'react'
 
-// Mock data - TODO: Reemplazar con datos reales del contrato
-const MOCK_SONGS = [
-  {
-    id: '1',
-    title: 'Summer Vibes',
-    metadataUri: 'ipfs://QmXxxx...',
-    splitterAddress: '0x1234567890123456789012345678901234567890',
-    totalEarned: '3.5',
-    contributors: [
-      { address: '0x1111111111111111111111111111111111111111', percentage: 40 },
-      { address: '0x2222222222222222222222222222222222222222', percentage: 30 },
-      { address: '0x3333333333333333333333333333333333333333', percentage: 30 },
-    ]
-  }
-]
+interface Song {
+  entityKey: string
+  songTitle: string
+  artist: string
+  genre: string
+  nftContractAddress: string
+  collaborators: Array<{
+    name: string
+    role: string
+    percentage: number
+    walletAddress: string
+  }>
+  createdAt?: string
+}
 
 export default function SongsListPage() {
-  const { isConnected } = useAccount()
+  const { isConnected, address } = useAccount()
+  const [songs, setSongs] = useState<Song[]>([])
+  const [loading, setLoading] = useState(true)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (mounted && isConnected) {
+      loadSongs()
+    }
+  }, [mounted, isConnected])
+
+  const loadSongs = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/songs/list')
+      const result = await response.json()
+      
+      if (result.success) {
+        setSongs(result.data || [])
+      }
+    } catch (error) {
+      console.error('Error cargando canciones:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (!mounted) {
+    return null
+  }
 
   if (!isConnected) {
     return (
@@ -55,7 +88,7 @@ export default function SongsListPage() {
               Mis Canciones
             </h1>
             <p className="text-[16px]" style={{ color: '#C2CAD7' }}>
-              {MOCK_SONGS.length} {MOCK_SONGS.length === 1 ? 'canción' : 'canciones'}
+              {loading ? 'Cargando...' : `${songs.length} ${songs.length === 1 ? 'canción' : 'canciones'}`}
             </p>
           </div>
 
@@ -80,10 +113,15 @@ export default function SongsListPage() {
         </div>
 
         {/* Songs Grid */}
-        {MOCK_SONGS.length > 0 ? (
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-t-transparent" style={{ borderColor: '#FC3C44' }}></div>
+            <p className="mt-4 text-[16px]" style={{ color: '#8E8E93' }}>Cargando canciones...</p>
+          </div>
+        ) : songs.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {MOCK_SONGS.map((song) => (
-              <Link key={song.id} href={`/songs/${song.id}`}>
+            {songs.map((song) => (
+              <Link key={song.entityKey} href={`/songs/${song.entityKey}`}>
                 <div 
                   className="rounded-[24px] p-6 border transition-all cursor-pointer"
                   style={{
@@ -113,15 +151,25 @@ export default function SongsListPage() {
                   </div>
 
                   <h3 className="text-[20px] font-bold mb-2" style={{ color: '#FFFFFF' }}>
-                    {song.title}
+                    {song.songTitle}
                   </h3>
+
+                  <p className="text-[14px] mb-3" style={{ color: '#8E8E93' }}>
+                    {song.artist}
+                  </p>
 
                   <div className="flex items-center justify-between mb-4">
                     <span className="text-[14px]" style={{ color: '#8E8E93' }}>
-                      {song.contributors.length} colaboradores
+                      {song.collaborators.length} colaboradores
                     </span>
-                    <span className="text-[14px] font-semibold" style={{ color: '#34C759' }}>
-                      {song.totalEarned} ETH
+                    <span 
+                      className="text-[12px] px-2 py-1 rounded-[6px]"
+                      style={{ 
+                        background: 'rgba(52, 199, 89, 0.15)',
+                        color: '#34C759'
+                      }}
+                    >
+                      {song.genre}
                     </span>
                   </div>
 
@@ -132,7 +180,7 @@ export default function SongsListPage() {
                       color: '#C2CAD7',
                     }}
                   >
-                    {song.splitterAddress.slice(0, 10)}...{song.splitterAddress.slice(-8)}
+                    {song.nftContractAddress.slice(0, 10)}...{song.nftContractAddress.slice(-8)}
                   </div>
                 </div>
               </Link>

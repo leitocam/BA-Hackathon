@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAccount } from 'wagmi'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -27,8 +27,9 @@ const COMMON_ROLES = [
 ]
 
 export default function CreateSongPage() {
-  const { isConnected } = useAccount()
+  const { isConnected, address } = useAccount()
   const router = useRouter()
+  const [mounted, setMounted] = useState(false)
   
   const [title, setTitle] = useState('')
   const [team, setTeam] = useState<TeamMember[]>([
@@ -86,6 +87,11 @@ export default function CreateSongPage() {
       return
     }
 
+    if (team.length < 2) {
+      alert('⚠️ Necesitás al menos 2 colaboradores para crear una canción.\n\nEl contrato de splits requiere mínimo 2 participantes.')
+      return
+    }
+
     setIsCreating(true)
     
     try {
@@ -128,32 +134,34 @@ export default function CreateSongPage() {
       console.log('Arkiv Entity Key:', result.data.arkiv.entityKey);
       console.log('Metadata URI:', result.data.arkiv.metadataUri);
       
-      alert(`🎉 ¡Canción creada exitosamente!
+      // Redirigir a la página de canciones
+      router.push('/songs');
+      
+      // Mostrar mensaje de éxito después de redirigir
+      setTimeout(() => {
+        alert(`🎉 ¡Canción "${title}" creada exitosamente!
 
-📝 TX Hash: ${result.data.txHash}
+📝 TX: ${result.data.txHash.slice(0, 10)}...${result.data.txHash.slice(-8)}
 🎵 NFT: ${result.data.songNFT}
 💰 Splitter: ${result.data.revenueSplitter}
-💾 Arkiv: ${result.data.arkiv.entityKey}
 
-Ver en Scroll Explorer: https://sepolia.scrollscan.com/tx/${result.data.txHash}`);
-      
-      router.push('/songs');
+✅ La canción ya aparece en tu lista`);
+      }, 500);
 
     } catch (error: any) {
       console.error('❌ Error al crear la canción:', error);
-      alert(`Error al crear la canción: ${error.message || 'Error desconocido'}`);
+      alert(`❌ Error al crear la canción:\n\n${error.message || 'Error desconocido'}`);
     } finally {
       setIsCreating(false);
     }
   }
 
   useEffect(() => {
-    if (isSuccess) {
-      console.log('✅ Canción creada exitosamente!')
-      console.log('Transaction hash:', hash)
-      alert('🎉 ¡Canción creada exitosamente!')
-      setIsCreating(false);
-    }
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return null
   }
 
   if (!isConnected) {
@@ -234,30 +242,29 @@ Ver en Scroll Explorer: https://sepolia.scrollscan.com/tx/${result.data.txHash}`
 
                 <div>
                   <label className="block text-[15px] font-semibold mb-2" style={{ color: '#FFFFFF' }}>
-                    Link de Metadata (Arkiv) <span style={{ color: '#FC3C44' }}>*</span>
+                    Link de Metadata (Arkiv)
                   </label>
                   <input
                     type="text"
-                    value={metadataUri}
-                    onChange={(e) => setMetadataUri(e.target.value)}
-                    placeholder="ipfs://QmXxxx..."
+                    value=""
+                    disabled
+                    placeholder="Se generará automáticamente"
                     className="w-full h-[52px] px-4 rounded-[12px] border text-[16px] font-mono"
                     style={{
-                      background: 'rgba(44, 44, 46, 0.8)',
+                      background: 'rgba(44, 44, 46, 0.5)',
                       borderColor: 'rgba(255, 255, 255, 0.2)',
-                      color: '#FFFFFF',
+                      color: '#8E8E93',
                     }}
-                    required
                   />
                   <p className="text-[13px] mt-2" style={{ color: '#8E8E93' }}>
-                    💡 Subí tu metadata a <a href="https://arkiv.org" target="_blank" rel="noopener noreferrer" className="underline" style={{ color: '#FC3C44' }}>Arkiv</a> y pegá el link acá
+                    💡 La metadata se guardará automáticamente en Arkiv al crear la canción
                   </p>
                 </div>
 
                 <button
                   type="button"
                   onClick={() => setCurrentStep('team')}
-                  disabled={!title || !metadataUri}
+                  disabled={!title}
                   className="w-full h-[56px] rounded-full text-[16px] font-semibold transition-all disabled:opacity-40"
                   style={{
                     background: 'linear-gradient(135deg, #FC3C44 0%, #F94C57 100%)',
@@ -511,34 +518,12 @@ Ver en Scroll Explorer: https://sepolia.scrollscan.com/tx/${result.data.txHash}`
                   boxShadow: isValid ? '0 8px 24px -6px rgba(252, 60, 68, 0.6)' : 'none',
                 }}
               >
-                {isPending && '⏳ Esperando confirmación en wallet...'}
-                {isConfirming && '⏳ Confirmando transacción...'}
-                {!isPending && !isConfirming && '🎵 Crear canción y registrar en blockchain'}
+                {isCreating ? '⏳ Creando canción...' : '🎵 Crear canción y registrar en blockchain'}
               </button>
 
               <p className="text-[13px] text-center mt-4" style={{ color: '#8E8E93' }}>
                 Se creará un contrato inteligente que distribuirá automáticamente las ganancias
               </p>
-
-              {hash && (
-                <div className="mt-4 p-4 rounded-[12px] border" style={{
-                  background: 'rgba(52, 199, 89, 0.1)',
-                  borderColor: 'rgba(52, 199, 89, 0.3)',
-                }}>
-                  <p className="text-[13px] mb-2" style={{ color: '#34C759' }}>
-                    ✅ Transacción enviada
-                  </p>
-                  <a 
-                    href={`https://sepolia.scrollscan.com/tx/${hash}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[12px] font-mono break-all underline"
-                    style={{ color: '#FC3C44' }}
-                  >
-                    Ver en Scrollscan
-                  </a>
-                </div>
-              )}
             </>
           )}
         </form>

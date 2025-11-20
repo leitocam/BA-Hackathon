@@ -147,6 +147,45 @@ export class SongMetadataService {
       return [];
     }
   }
+
+  /**
+   * Consulta TODAS las canciones almacenadas en Arkiv
+   * @returns Lista completa de metadata
+   */
+  async getAllSongs(): Promise<SongMetadata[]> {
+    try {
+      const query = publicClient.buildQuery();
+      const results = await query
+        .where(eq('type', 'song-metadata'))
+        .withAttributes(true)
+        .withPayload(true)
+        .fetch();
+      
+      const songs: SongMetadata[] = [];
+      
+      for (const entity of results.entities) {
+        if (entity.payload) {
+          const payloadBytes = Array.isArray(entity.payload) 
+            ? new Uint8Array(entity.payload)
+            : entity.payload;
+          
+          const payloadStr = new TextDecoder().decode(payloadBytes);
+          const metadata: SongMetadata = JSON.parse(payloadStr);
+          // Agregar entityKey para poder linkear
+          (metadata as any).entityKey = entity.key;
+          songs.push(metadata);
+        }
+      }
+      
+      // Ordenar por fecha de creación (más recientes primero)
+      songs.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      
+      return songs;
+    } catch (error) {
+      console.error(`Error al obtener todas las canciones: ${error}`);
+      return [];
+    }
+  }
   
   /**
    * Verifica si una metadata aún es válida (no ha expirado)

@@ -35,7 +35,9 @@ export async function POST(request: NextRequest) {
     const recipients = collaborators.map((c: any) => 
       ethers.getAddress(c.walletAddress)
     );
-    const percentages = collaborators.map((c: any) => BigInt(c.percentage));
+    // IMPORTANTE: El contrato espera basis points (percentage * 100)
+    // Ejemplo: 50% = 5000 basis points
+    const percentages = collaborators.map((c: any) => BigInt(c.percentage * 100));
     
     const symbol = songTitle
       .toUpperCase()
@@ -46,7 +48,7 @@ export async function POST(request: NextRequest) {
     console.log('  - Name:', songTitle);
     console.log('  - Symbol:', symbol);
     console.log('  - Recipients:', recipients);
-    console.log('  - Percentages:', percentages);
+    console.log('  - Percentages (basis points):', percentages);
 
     // 3. Crear canción en blockchain
     const tx = await factory.createSong(
@@ -65,16 +67,17 @@ export async function POST(request: NextRequest) {
     let songNFT = '';
     let revenueSplitter = '';
 
+    console.log('🔍 Buscando evento SongCreated en', receipt.logs.length, 'logs...');
+    
     for (const log of receipt.logs) {
       try {
-        const parsed = factory.interface.parseLog({
-          topics: log.topics as string[],
-          data: log.data
-        });
+        const parsed = factory.interface.parseLog(log);
         
         if (parsed && parsed.name === 'SongCreated') {
-          songNFT = parsed.args.nft;
-          revenueSplitter = parsed.args.splitter;
+          // Los nombres de los args son nftAddress y splitterAddress
+          songNFT = parsed.args.nftAddress;
+          revenueSplitter = parsed.args.splitterAddress;
+          console.log('✅ Evento SongCreated encontrado!');
           console.log('🎵 SongNFT:', songNFT);
           console.log('💰 RevenueSplitter:', revenueSplitter);
           break;
@@ -85,6 +88,9 @@ export async function POST(request: NextRequest) {
     }
 
     if (!songNFT || !revenueSplitter) {
+      console.error('❌ No se encontró el evento SongCreated');
+      console.log('📋 TX Hash:', tx.hash);
+      console.log('🔗 Ver en explorer: https://sepolia.scrollscan.com/tx/' + tx.hash);
       throw new Error('No se pudieron obtener las direcciones de los contratos del evento SongCreated');
     }
 

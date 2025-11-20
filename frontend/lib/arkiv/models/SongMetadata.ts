@@ -13,6 +13,11 @@ export interface Collaborator {
 
 export interface SongMetadata {
   // ========================================
+  // ARKIV INFO
+  // ========================================
+  entityKey?: string; // Se agrega al recuperar desde Arkiv
+  
+  // ========================================
   // INFORMACIÓN BÁSICA DE LA CANCIÓN
   // ========================================
   songTitle: string;
