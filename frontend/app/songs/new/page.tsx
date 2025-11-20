@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
-import { useAccount } from 'wagmi'
+import { useState, useEffect } from 'react'
+import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { SPLIT_TRACK_FACTORY_ABI, getFactoryAddress } from '@/lib/web3/contracts'
 
 interface TeamMember {
   id: string
@@ -27,7 +28,7 @@ const COMMON_ROLES = [
 ]
 
 export default function CreateSongPage() {
-  const { isConnected, address } = useAccount()
+  const { isConnected, address, chainId } = useAccount()
   const router = useRouter()
   
   const [title, setTitle] = useState('')
@@ -43,6 +44,17 @@ export default function CreateSongPage() {
   ])
   const [isCreating, setIsCreating] = useState(false)
   const [currentStep, setCurrentStep] = useState<'info' | 'team'>('info')
+
+  const { 
+    data: hash,
+    writeContract,
+    isPending,
+    error: writeError 
+  } = useWriteContract()
+
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+    hash,
+  })
 
   const totalPercentage = team.reduce((sum, member) => sum + (member.percentage || 0), 0)
   const isValid = totalPercentage === 100 && team.every(m => m.name && m.role && m.walletAddress && m.percentage > 0)
@@ -69,29 +81,6 @@ export default function CreateSongPage() {
     ))
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    if (!isValid || !title || !metadataUri) {
-      alert('Por favor completá todos los campos correctamente')
-      return
-    }
-
-    setIsCreating(true)
-    try {
-      // TODO: Integrar con contrato SplitTrackFactory
-      console.log('Creating song:', { title, metadataUri, team })
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      alert('🎉 ¡Canción creada exitosamente!')
-      router.push('/songs')
-    } catch (error) {
-      console.error('Error creating song:', error)
-      alert('Error al crear la canción')
-    } finally {
-      setIsCreating(false)
-    }
-  }
-
   const distributeEqually = () => {
     const equalPercentage = Math.floor(100 / team.length)
     const remainder = 100 - (equalPercentage * team.length)
@@ -101,6 +90,82 @@ export default function CreateSongPage() {
       percentage: index === 0 ? equalPercentage + remainder : equalPercentage
     })))
   }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!isValid || !title || !metadataUri) {
+      alert('Por favor completá todos los campos correctamente')
+      return
+    }
+
+    if (!chainId) {
+      alert('No se pudo detectar la red. Por favor reconectá tu wallet.')
+      return
+    }
+
+    const factoryAddress = getFactoryAddress(chainId)
+    
+    if (!factoryAddress || factoryAddress === '0x0000000000000000000000000000000000000000') {
+      alert('⚠️ El contrato Factory no está deployado en esta red. Por favor pedile a Dev A la dirección del contrato.')
+      console.error('Factory address not configured for chainId:', chainId)
+      return
+    }
+
+    setIsCreating(true)
+    
+    try {
+      const recipients = team.map(m => m.walletAddress as `0x${string}`)
+      const percentages = team.map(m => BigInt(m.percentage))
+      
+      const symbol = title
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, '')
+        .slice(0, 10) || 'SONG'
+
+      console.log('🎵 Creando canción on-chain...')
+      console.log('Factory Address:', factoryAddress)
+      console.log('Title:', title)
+      console.log('Symbol:', symbol)
+      console.log('Metadata URI:', metadataUri)
+      console.log('Recipients:', recipients)
+      console.log('Percentages:', percentages)
+
+      writeContract({
+        address: factoryAddress,
+        abi: SPLIT_TRACK_FACTORY_ABI,
+        functionName: 'createSong',
+        args: [title, symbol, metadataUri, recipients, percentages],
+      })
+
+    } catch (error: any) {
+      console.error('Error creating song:', error)
+      alert(`Error al crear la canción: ${error.message || 'Error desconocido'}`)
+      setIsCreating(false)
+    }
+  }
+
+  useEffect(() => {
+    if (isSuccess) {
+      console.log('✅ Canción creada exitosamente!')
+      console.log('Transaction hash:', hash)
+      alert('🎉 ¡Canción creada exitosamente!')
+      setIsCreating(false)
+      router.push('/songs')
+    }
+  }, [isSuccess])
+
+  useEffect(() => {
+    if (writeError) {
+      console.error('❌ Error en transacción:', writeError)
+      alert(`Error: ${writeError.message}`)
+      setIsCreating(false)
+    }
+  }, [writeError])
+
+  useEffect(() => {
+    setIsCreating(isPending || isConfirming)
+  }, [isPending, isConfirming])
 
   if (!isConnected) {
     return (
@@ -132,7 +197,6 @@ export default function CreateSongPage() {
   return (
     <div className="min-h-[calc(100vh-8rem)] py-12" style={{ background: '#000000' }}>
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl">
-        {/* Header */}
         <div className="mb-8">
           <Link href="/songs" className="inline-flex items-center gap-2 text-[14px] mb-4" style={{ color: '#8E8E93' }}>
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -149,63 +213,7 @@ export default function CreateSongPage() {
           </p>
         </div>
 
-        {/* Progress Steps */}
-        <div className="flex items-center gap-4 mb-8">
-          <button
-            onClick={() => setCurrentStep('info')}
-            className={`flex-1 h-[60px] rounded-[16px] border transition-all ${currentStep === 'info' ? 'border-[#FC3C44]' : 'border-transparent'}`}
-            style={{
-              background: currentStep === 'info' 
-                ? 'linear-gradient(135deg, rgba(252, 60, 68, 0.15) 0%, rgba(249, 76, 87, 0.1) 100%)'
-                : 'rgba(28, 28, 30, 0.6)',
-            }}
-          >
-            <div className="flex items-center justify-center gap-3">
-              <div 
-                className="w-8 h-8 rounded-full flex items-center justify-center text-[14px] font-bold"
-                style={{
-                  background: currentStep === 'info' ? '#FC3C44' : 'rgba(255, 255, 255, 0.1)',
-                  color: '#FFFFFF',
-                }}
-              >
-                1
-              </div>
-              <span className="text-[15px] font-semibold" style={{ color: '#FFFFFF' }}>
-                Info de la canción
-              </span>
-            </div>
-          </button>
-
-          <button
-            onClick={() => title && metadataUri && setCurrentStep('team')}
-            disabled={!title || !metadataUri}
-            className={`flex-1 h-[60px] rounded-[16px] border transition-all ${currentStep === 'team' ? 'border-[#FC3C44]' : 'border-transparent'}`}
-            style={{
-              background: currentStep === 'team' 
-                ? 'linear-gradient(135deg, rgba(252, 60, 68, 0.15) 0%, rgba(249, 76, 87, 0.1) 100%)'
-                : 'rgba(28, 28, 30, 0.6)',
-              opacity: (!title || !metadataUri) ? 0.5 : 1,
-            }}
-          >
-            <div className="flex items-center justify-center gap-3">
-              <div 
-                className="w-8 h-8 rounded-full flex items-center justify-center text-[14px] font-bold"
-                style={{
-                  background: currentStep === 'team' ? '#FC3C44' : 'rgba(255, 255, 255, 0.1)',
-                  color: '#FFFFFF',
-                }}
-              >
-                2
-              </div>
-              <span className="text-[15px] font-semibold" style={{ color: '#FFFFFF' }}>
-                Armá tu equipo
-              </span>
-            </div>
-          </button>
-        </div>
-
         <form onSubmit={handleSubmit}>
-          {/* Step 1: Song Info */}
           {currentStep === 'info' && (
             <div 
               className="rounded-[24px] p-8 border mb-6"
@@ -273,7 +281,6 @@ export default function CreateSongPage() {
             </div>
           )}
 
-          {/* Step 2: Team */}
           {currentStep === 'team' && (
             <>
               <div 
@@ -464,7 +471,6 @@ export default function CreateSongPage() {
                 </button>
               </div>
 
-              {/* Validation Badge */}
               <div 
                 className="rounded-[16px] p-6 border mb-6"
                 style={{
@@ -504,7 +510,6 @@ export default function CreateSongPage() {
                 </div>
               </div>
 
-              {/* Submit Button */}
               <button
                 type="submit"
                 disabled={!isValid || isCreating}
@@ -517,12 +522,34 @@ export default function CreateSongPage() {
                   boxShadow: isValid ? '0 8px 24px -6px rgba(252, 60, 68, 0.6)' : 'none',
                 }}
               >
-                {isCreating ? '⏳ Creando canción...' : '🎵 Crear canción y registrar en blockchain'}
+                {isPending && '⏳ Esperando confirmación en wallet...'}
+                {isConfirming && '⏳ Confirmando transacción...'}
+                {!isPending && !isConfirming && '🎵 Crear canción y registrar en blockchain'}
               </button>
 
               <p className="text-[13px] text-center mt-4" style={{ color: '#8E8E93' }}>
                 Se creará un contrato inteligente que distribuirá automáticamente las ganancias
               </p>
+
+              {hash && (
+                <div className="mt-4 p-4 rounded-[12px] border" style={{
+                  background: 'rgba(52, 199, 89, 0.1)',
+                  borderColor: 'rgba(52, 199, 89, 0.3)',
+                }}>
+                  <p className="text-[13px] mb-2" style={{ color: '#34C759' }}>
+                    ✅ Transacción enviada
+                  </p>
+                  <a 
+                    href={`https://sepolia.scrollscan.com/tx/${hash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[12px] font-mono break-all underline"
+                    style={{ color: '#FC3C44' }}
+                  >
+                    Ver en Scrollscan
+                  </a>
+                </div>
+              )}
             </>
           )}
         </form>

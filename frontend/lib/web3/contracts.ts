@@ -65,14 +65,183 @@ export const SIMPLE_STORAGE_ABI = [
 ] as const
 
 /**
- * Direcciones de contratos en diferentes redes
+ * ABIs y direcciones de los contratos de SplitTrack
  * 
- * Organiza las direcciones por chainId para fácil acceso
+ * Contratos deployados en Scroll Sepolia
+ */
+
+// ============================================
+// ABIs
+// ============================================
+
+export const SONG_NFT_ABI = [
+  {
+    type: "constructor",
+    inputs: [
+      { type: "string", name: "_name", internalType: "string" },
+      { type: "string", name: "_symbol", internalType: "string" },
+      { type: "string", name: "_metadataURI", internalType: "string" },
+      { type: "address", name: "_initialOwner", internalType: "address" }
+    ],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    name: "mint",
+    inputs: [
+      { type: "address", name: "to", internalType: "address" }
+    ],
+    outputs: [
+      { type: "uint256", name: "", internalType: "uint256" }
+    ],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    name: "metadataURI",
+    inputs: [],
+    outputs: [
+      { type: "string", name: "", internalType: "string" }
+    ],
+    stateMutability: "view"
+  },
+  {
+    type: "function",
+    name: "owner",
+    inputs: [],
+    outputs: [
+      { type: "address", name: "", internalType: "address" }
+    ],
+    stateMutability: "view"
+  },
+  {
+    type: "function",
+    name: "tokenURI",
+    inputs: [
+      { type: "uint256", name: "arg0", internalType: "uint256" }
+    ],
+    outputs: [
+      { type: "string", name: "", internalType: "string" }
+    ],
+    stateMutability: "view"
+  },
+  {
+    type: "function",
+    name: "tokenIdCounter",
+    inputs: [],
+    outputs: [
+      { type: "uint256", name: "", internalType: "uint256" }
+    ],
+    stateMutability: "view"
+  }
+] as const
+
+export const SPLIT_TRACK_FACTORY_ABI = [
+  {
+    type: "event",
+    name: "SongCreated",
+    inputs: [
+      { type: "address", name: "nftAddress", indexed: false },
+      { type: "address", name: "splitterAddress", indexed: false },
+      { type: "string", name: "metadataURI", indexed: false }
+    ],
+    anonymous: false
+  },
+  {
+    type: "function",
+    name: "createSong",
+    inputs: [
+      { type: "string", name: "name_", internalType: "string" },
+      { type: "string", name: "symbol_", internalType: "string" },
+      { type: "string", name: "metadataURI_", internalType: "string" },
+      { type: "address[]", name: "recipients_", internalType: "address[]" },
+      { type: "uint256[]", name: "percentages_", internalType: "uint256[]" }
+    ],
+    outputs: [
+      { type: "address", name: "nft", internalType: "address" },
+      { type: "address", name: "splitter", internalType: "address" }
+    ],
+    stateMutability: "nonpayable"
+  }
+] as const
+
+export const REVENUE_SPLITTER_ABI = [
+  {
+    type: "constructor",
+    inputs: [
+      { type: "address[]", name: "_recipients", internalType: "address[]" },
+      { type: "uint256[]", name: "_percentages", internalType: "uint256[]" }
+    ],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "receive",
+    stateMutability: "payable"
+  },
+  {
+    type: "function",
+    name: "distribute",
+    inputs: [],
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    name: "percentages",
+    inputs: [
+      { type: "uint256", name: "arg0", internalType: "uint256" }
+    ],
+    outputs: [
+      { type: "uint256", name: "", internalType: "uint256" }
+    ],
+    stateMutability: "view"
+  },
+  {
+    type: "function",
+    name: "recipients",
+    inputs: [
+      { type: "uint256", name: "arg0", internalType: "uint256" }
+    ],
+    outputs: [
+      { type: "address", name: "", internalType: "address" }
+    ],
+    stateMutability: "view"
+  }
+] as const
+
+// ============================================
+// Direcciones de contratos
+// ============================================
+
+/**
+ * IMPORTANTE: Actualizar estas direcciones con las reales deployadas por Dev A
+ * Estas son placeholders - deben ser reemplazadas con las addresses reales
  */
 export const CONTRACT_ADDRESSES = {
-  // Scroll Sepolia
+  // Scroll Sepolia (testnet)
   534351: {
-    // Agrega aquí las direcciones de tus contratos deployados
-    // ejemplo: '0x...'
+    SPLIT_TRACK_FACTORY: '0x0000000000000000000000000000000000000000', // TODO: Actualizar con address real
+    // Las direcciones de SongNFT y RevenueSplitter se crean dinámicamente via Factory
   },
 } as const
+
+// Helper para obtener la dirección del factory según la chain
+export function getFactoryAddress(chainId: number): `0x${string}` | undefined {
+  const addresses = CONTRACT_ADDRESSES[chainId as keyof typeof CONTRACT_ADDRESSES]
+  return addresses?.SPLIT_TRACK_FACTORY as `0x${string}` | undefined
+}
+
+// Tipos útiles
+export type SongData = {
+  nftAddress: `0x${string}`
+  splitterAddress: `0x${string}`
+  title: string
+  metadataURI: string
+}
+
+export type Contributor = {
+  address: `0x${string}`
+  percentage: bigint
+  name?: string
+  role?: string
+}
