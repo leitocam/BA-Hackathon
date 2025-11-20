@@ -19,13 +19,11 @@ contract SplitTrackFactory {
         uint256[] calldata percentages_
     ) external returns (address nft, address splitter) {
 
-        // 1. Crear splitter
         splitter = address(new RevenueSplitter(recipients_, percentages_));
 
-        // 2. Crear NFT, pasando msg.sender como el owner inicial del NFT
         nft = address(new SongNFT(name_, symbol_, metadataURI_, msg.sender));
 
-        // Eventos para frontend + Arkiv
         emit SongCreated(nft, splitter, metadataURI_);
     }
+
 }
