@@ -16,6 +16,8 @@ interface SongDetail {
     role: string
     percentage: number
     walletAddress: string
+    crossmintEmail?: string
+    useCrossmint?: boolean
   }>
   createdAt?: string
 }
@@ -282,10 +284,32 @@ export default function SongDetailPage() {
                         >
                           {contributor.role}
                         </span>
+                        {contributor.useCrossmint && (
+                          <span 
+                            className="text-[11px] px-2 py-0.5 rounded"
+                            style={{ 
+                              background: 'rgba(52, 199, 89, 0.15)',
+                              color: '#34C759'
+                            }}
+                          >
+                            💳 Crossmint
+                          </span>
+                        )}
                       </div>
-                      <p className="text-[13px] font-mono" style={{ color: '#8E8E93' }}>
-                        {contributor.walletAddress.slice(0, 10)}...{contributor.walletAddress.slice(-8)}
-                      </p>
+                      {contributor.useCrossmint && contributor.crossmintEmail ? (
+                        <div className="space-y-1">
+                          <p className="text-[12px]" style={{ color: '#8E8E93' }}>
+                            📧 {contributor.crossmintEmail}
+                          </p>
+                          <p className="text-[11px] font-mono" style={{ color: '#636366' }}>
+                            Wallet: {contributor.walletAddress.slice(0, 10)}...{contributor.walletAddress.slice(-8)}
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="text-[13px] font-mono" style={{ color: '#8E8E93' }}>
+                          {contributor.walletAddress.slice(0, 10)}...{contributor.walletAddress.slice(-8)}
+                        </p>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-4">

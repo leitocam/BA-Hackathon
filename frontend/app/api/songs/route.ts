@@ -141,7 +141,35 @@ export async function POST(request: NextRequest) {
     console.log('  - Entity Key:', arkivResult.entityKey);
     console.log('  - Metadata URI:', arkivResult.metadataUri);
 
-    // 7. Retornar todo
+    // 7. CROSSMINT: Enviar emails a colaboradores con wallets custodiales
+    const crossmintCollaborators = processedCollaborators.filter((c: any) => c.crossmintCustodial);
+    if (crossmintCollaborators.length > 0) {
+      console.log('📧 Enviando emails a colaboradores Crossmint...');
+      
+      for (const collab of crossmintCollaborators) {
+        try {
+          await fetch(`${request.nextUrl.origin}/api/send-email`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              to: collab.crossmintEmail,
+              songTitle,
+              collaboratorName: collab.name,
+              walletAddress: collab.walletAddress,
+              percentage: collab.percentage,
+              revenueSplitter,
+              scrollTxHash: receipt.hash
+            })
+          });
+          console.log(`✅ Email enviado a ${collab.crossmintEmail}`);
+        } catch (emailError) {
+          console.error(`❌ Error enviando email a ${collab.crossmintEmail}:`, emailError);
+          // No fallar la creación de canción si falla el email
+        }
+      }
+    }
+
+    // 8. Retornar todo
     return NextResponse.json({
       success: true,
       data: {
