@@ -214,13 +214,13 @@ export const REVENUE_SPLITTER_ABI = [
 // ============================================
 
 /**
- * IMPORTANTE: Actualizar estas direcciones con las reales deployadas por Dev A
- * Estas son placeholders - deben ser reemplazadas con las addresses reales
+ * Direcciones de contratos deployados en Scroll Sepolia
+ * Actualizadas el: 20 Nov 2025
  */
 export const CONTRACT_ADDRESSES = {
   // Scroll Sepolia (testnet)
   534351: {
-    SPLIT_TRACK_FACTORY: '0x0000000000000000000000000000000000000000', // TODO: Actualizar con address real
+    SPLIT_TRACK_FACTORY: '0xE76920eaB8C76d6aa6191E3413DeF78073Fa0c66',
     // Las direcciones de SongNFT y RevenueSplitter se crean dinámicamente via Factory
   },
 } as const
