@@ -99,16 +99,33 @@ export default function CreateSongPage() {
       return
     }
 
+    // Debug: Ver qué valores tenemos
+    console.log('🔍 DEBUG - Valores actuales:')
+    console.log('- chainId:', chainId)
+    console.log('- chainId type:', typeof chainId)
+    console.log('- isConnected:', isConnected)
+    console.log('- address:', address)
+
     if (!chainId) {
       alert('No se pudo detectar la red. Por favor reconectá tu wallet.')
+      console.error('❌ chainId is undefined or null')
       return
     }
 
+    console.log('🔍 Buscando Factory address para chainId:', chainId)
     const factoryAddress = getFactoryAddress(chainId)
+    console.log('🔍 Factory address obtenida:', factoryAddress)
     
     if (!factoryAddress || factoryAddress === '0x0000000000000000000000000000000000000000') {
-      alert('⚠️ El contrato Factory no está deployado en esta red. Por favor pedile a Dev A la dirección del contrato.')
-      console.error('Factory address not configured for chainId:', chainId)
+      alert(`⚠️ El contrato Factory no está deployado en esta red (chainId: ${chainId}). 
+      
+🔍 Debug info:
+- Red actual: ${chainId}
+- Red esperada: 534351 (Scroll Sepolia)
+- Factory address: ${factoryAddress || 'undefined'}
+
+Por favor verificá que estés conectado a Scroll Sepolia.`)
+      console.error('❌ Factory address not configured for chainId:', chainId)
       return
     }
 
