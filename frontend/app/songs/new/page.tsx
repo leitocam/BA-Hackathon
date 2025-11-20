@@ -1,10 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
+import { useState } from 'react'
+import { useAccount } from 'wagmi'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { SPLIT_TRACK_FACTORY_ABI, getFactoryAddress } from '@/lib/web3/contracts'
 
 interface TeamMember {
   id: string
@@ -28,11 +27,10 @@ const COMMON_ROLES = [
 ]
 
 export default function CreateSongPage() {
-  const { isConnected, address, chainId } = useAccount()
+  const { isConnected } = useAccount()
   const router = useRouter()
   
   const [title, setTitle] = useState('')
-  const [metadataUri, setMetadataUri] = useState('')
   const [team, setTeam] = useState<TeamMember[]>([
     {
       id: '1',
@@ -44,17 +42,6 @@ export default function CreateSongPage() {
   ])
   const [isCreating, setIsCreating] = useState(false)
   const [currentStep, setCurrentStep] = useState<'info' | 'team'>('info')
-
-  const { 
-    data: hash,
-    writeContract,
-    isPending,
-    error: writeError 
-  } = useWriteContract()
-
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
-    hash,
-  })
 
   const totalPercentage = team.reduce((sum, member) => sum + (member.percentage || 0), 0)
   const isValid = totalPercentage === 100 && team.every(m => m.name && m.role && m.walletAddress && m.percentage > 0)
@@ -94,71 +81,69 @@ export default function CreateSongPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!isValid || !title || !metadataUri) {
+    if (!isValid || !title) {
       alert('Por favor completá todos los campos correctamente')
-      return
-    }
-
-    // Debug: Ver qué valores tenemos
-    console.log('🔍 DEBUG - Valores actuales:')
-    console.log('- chainId:', chainId)
-    console.log('- chainId type:', typeof chainId)
-    console.log('- isConnected:', isConnected)
-    console.log('- address:', address)
-
-    if (!chainId) {
-      alert('No se pudo detectar la red. Por favor reconectá tu wallet.')
-      console.error('❌ chainId is undefined or null')
-      return
-    }
-
-    console.log('🔍 Buscando Factory address para chainId:', chainId)
-    const factoryAddress = getFactoryAddress(chainId)
-    console.log('🔍 Factory address obtenida:', factoryAddress)
-    
-    if (!factoryAddress || factoryAddress === '0x0000000000000000000000000000000000000000') {
-      alert(`⚠️ El contrato Factory no está deployado en esta red (chainId: ${chainId}). 
-      
-🔍 Debug info:
-- Red actual: ${chainId}
-- Red esperada: 534351 (Scroll Sepolia)
-- Factory address: ${factoryAddress || 'undefined'}
-
-Por favor verificá que estés conectado a Scroll Sepolia.`)
-      console.error('❌ Factory address not configured for chainId:', chainId)
       return
     }
 
     setIsCreating(true)
     
     try {
-      const recipients = team.map(m => m.walletAddress as `0x${string}`)
-      const percentages = team.map(m => BigInt(m.percentage))
-      
-      const symbol = title
-        .toUpperCase()
-        .replace(/[^A-Z0-9]/g, '')
-        .slice(0, 10) || 'SONG'
-
-      console.log('🎵 Creando canción on-chain...')
-      console.log('Factory Address:', factoryAddress)
+      console.log('🎵 Creando canción vía API backend...')
       console.log('Title:', title)
-      console.log('Symbol:', symbol)
-      console.log('Metadata URI:', metadataUri)
-      console.log('Recipients:', recipients)
-      console.log('Percentages:', percentages)
+      console.log('Team:', team)
 
-      writeContract({
-        address: factoryAddress,
-        abi: SPLIT_TRACK_FACTORY_ABI,
-        functionName: 'createSong',
-        args: [title, symbol, metadataUri, recipients, percentages],
-      })
+      // Llamar a la API del backend que hace todo:
+      // 1. Llama al Factory en blockchain
+      // 2. Guarda metadata en Arkiv
+      const response = await fetch('/api/songs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          songTitle: title,
+          artist: team[0]?.name || 'Unknown Artist',
+          genre: 'Hip Hop', // Podés agregar un selector después
+          coverImageUrl: '', // Podés agregar upload después
+          audioUrl: '', // Podés agregar upload después
+          collaborators: team.map(m => ({
+            name: m.name,
+            role: m.role,
+            walletAddress: m.walletAddress,
+            percentage: m.percentage
+          }))
+        })
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Error desconocido en la API');
+      }
+
+      console.log('✅ Canción creada exitosamente!');
+      console.log('TX Hash:', result.data.txHash);
+      console.log('Block:', result.data.blockNumber);
+      console.log('SongNFT:', result.data.songNFT);
+      console.log('RevenueSplitter:', result.data.revenueSplitter);
+      console.log('Arkiv Entity Key:', result.data.arkiv.entityKey);
+      console.log('Metadata URI:', result.data.arkiv.metadataUri);
+      
+      alert(`🎉 ¡Canción creada exitosamente!
+
+📝 TX Hash: ${result.data.txHash}
+🎵 NFT: ${result.data.songNFT}
+💰 Splitter: ${result.data.revenueSplitter}
+💾 Arkiv: ${result.data.arkiv.entityKey}
+
+Ver en Scroll Explorer: https://sepolia.scrollscan.com/tx/${result.data.txHash}`);
+      
+      router.push('/songs');
 
     } catch (error: any) {
-      console.error('Error creating song:', error)
-      alert(`Error al crear la canción: ${error.message || 'Error desconocido'}`)
-      setIsCreating(false)
+      console.error('❌ Error al crear la canción:', error);
+      alert(`Error al crear la canción: ${error.message || 'Error desconocido'}`);
+    } finally {
+      setIsCreating(false);
     }
   }
 
@@ -167,22 +152,9 @@ Por favor verificá que estés conectado a Scroll Sepolia.`)
       console.log('✅ Canción creada exitosamente!')
       console.log('Transaction hash:', hash)
       alert('🎉 ¡Canción creada exitosamente!')
-      setIsCreating(false)
-      router.push('/songs')
+      setIsCreating(false);
     }
-  }, [isSuccess])
-
-  useEffect(() => {
-    if (writeError) {
-      console.error('❌ Error en transacción:', writeError)
-      alert(`Error: ${writeError.message}`)
-      setIsCreating(false)
-    }
-  }, [writeError])
-
-  useEffect(() => {
-    setIsCreating(isPending || isConfirming)
-  }, [isPending, isConfirming])
+  }
 
   if (!isConnected) {
     return (

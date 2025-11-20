@@ -1,0 +1,31 @@
+{
+  "contractName": "SplitTrackFactory",
+  "abi": [
+    {
+      "type": "event",
+      "name": "SongCreated",
+      "inputs": [
+        {"type": "address", "name": "nftAddress", "indexed": false},
+        {"type": "address", "name": "splitterAddress", "indexed": false},
+        {"type": "string", "name": "metadataURI", "indexed": false}
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "function",
+      "name": "createSong",
+      "inputs": [
+        {"type": "string", "name": "name_", "internalType": "string"},
+        {"type": "string", "name": "symbol_", "internalType": "string"},
+        {"type": "string", "name": "metadataURI_", "internalType": "string"},
+        {"type": "address[]", "name": "recipients_", "internalType": "address[]"},
+        {"type": "uint256[]", "name": "percentages_", "internalType": "uint256[]"}
+      ],
+      "outputs": [
+        {"type": "address", "name": "nft", "internalType": "address"},
+        {"type": "address", "name": "splitter", "internalType": "address"}
+      ],
+      "stateMutability": "nonpayable"
+    }
+  ]
+}

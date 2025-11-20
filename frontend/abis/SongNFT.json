@@ -1,0 +1,64 @@
+{
+  "contractName": "SongNFT",
+  "abi": [
+    {
+      "type": "constructor",
+      "inputs": [
+        {"type": "string", "name": "_name", "internalType": "string"},
+        {"type": "string", "name": "_symbol", "internalType": "string"},
+        {"type": "string", "name": "_metadataURI", "internalType": "string"},
+        {"type": "address", "name": "_initialOwner", "internalType": "address"}
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "mint",
+      "inputs": [
+        {"type": "address", "name": "to", "internalType": "address"}
+      ],
+      "outputs": [
+        {"type": "uint256", "name": "", "internalType": "uint256"}
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "metadataURI",
+      "inputs": [],
+      "outputs": [
+        {"type": "string", "name": "", "internalType": "string"}
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "owner",
+      "inputs": [],
+      "outputs": [
+        {"type": "address", "name": "", "internalType": "address"}
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "tokenURI",
+      "inputs": [
+        {"type": "uint256", "name": "arg0", "internalType": "uint256"}
+      ],
+      "outputs": [
+        {"type": "string", "name": "", "internalType": "string"}
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "tokenIdCounter",
+      "inputs": [],
+      "outputs": [
+        {"type": "uint256", "name": "", "internalType": "uint256"}
+      ],
+      "stateMutability": "view"
+    }
+  ]
+}
