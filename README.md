@@ -1,52 +1,71 @@
-# MusiciUS - Arkiv Integration (DEV C)
+# MusiciUS - Collaborative Music NFT Platform
 
-**Hackathon Tierra de Builders MVP** - Music metadata system with legal splits, TTL, and Arkiv storage.
+> **Hackathon Tierra de Builders 2025** - Automated revenue splits for collaborative music creation using Arkiv, Scroll, and on-chain revenue distribution.
 
-[Leer en Español](#español) | [Read in English](#english)
-
----
-
-## English
-
-### What does this do?
-
-This MusiciUS project component:
-
-1. **Creates legal metadata** for music NFTs with revenue splits
-2. **Stores in Arkiv** with 6-month TTL (automatic expiration)
-3. **Generates SHA256 hash** of the legal agreement
-4. **Provides REST endpoints** for metadata queries (NFT-compatible)
-5. **Supports Crossmint** - collaborators without wallets can receive payments
+[🇪🇸 Español](#español) | [🇺🇸 English](#english)
 
 ---
 
-### Quick Start
+## 🇺🇸 English
 
-#### 1. Install dependencies
+### Overview
+
+MusiciUS is a full-stack platform that enables musicians to create collaborative NFTs with automated revenue splits. Built on **Scroll Sepolia** with **Arkiv** for decentralized metadata storage and **on-chain smart contracts** for transparent revenue distribution.
+
+### 🎯 Key Features
+
+#### Arkiv Integration (2+ Features)
+1. **CRUD Operations** - Create, read, and list song metadata
+2. **Advanced Queries** - Filter songs by artist, genre, collaborators
+3. **TTL Management** - 6-month automatic expiration with visual countdown
+4. **Cross-entity Relationships** - Link songs, collaborators, and contracts
+
+#### Smart Contract Integration
+- **Factory Pattern** - Deploy SongNFT + RevenueSplitter atomically
+- **Automated Splits** - On-chain revenue distribution based on percentages
+- **Event-driven Architecture** - Real-time TX monitoring and parsing
+
+#### Full-Stack Application
+- **Next.js 16 Frontend** - Modern React UI with wagmi/viem
+- **API Routes** - Backend integration between blockchain and Arkiv
+- **Real-time Updates** - Live song list from Arkiv queries
+
+---
+
+### 🚀 Quick Start
+
+#### Prerequisites
+- Node.js 18+
+- MetaMask or compatible wallet
+- Scroll Sepolia testnet ETH
+
+#### Installation
 
 ```bash
+# Clone repository
+git clone https://github.com/leitocam/BA-Hackathon.git
+cd mi-proyecto-arkiv
+
+# Install dependencies
 npm install
+cd frontend && npm install
 ```
 
-#### 2. Configure `.env`
+#### Configuration
 
+Create `frontend/.env.local`:
 ```env
-PRIVATE_KEY=your_private_key_without_0x
+PRIVATE_KEY=your_private_key_here
 ```
 
-#### 3. Run the complete demo
+#### Run Development Server
 
 ```bash
-npx tsx src/demo.ts
+cd frontend
+npm run dev
 ```
 
-This will create a sample song with 3 collaborators (one without wallet) and show the complete flow.
-
-#### 4. Start REST API
-
-```bash
-npx tsx src/server.ts
-```
+Open http://localhost:3000
 
 API available at `http://localhost:3000`
 
@@ -97,37 +116,315 @@ Create a new song and save metadata in Arkiv.
 
 ---
 
-#### `GET /api/metadata/:entityKey`
-Get song metadata (OpenSea/NFT compatible format).
+---
 
-**Response:**
-```json
-{
-  "name": "MusiciUS – Demo Beat",
-  "description": "MusiciUS – Demo Beat by DJ Arkiv",
-  "image": "https://example.com/cover.jpg",
-  "animation_url": "https://example.com/song.mp3",
-  "attributes": [...],
-  "artist": "DJ Arkiv",
-  "collaborators": [...],
-  "chainId": 534351,
-  "agreementHash": "0x9085daed...",
-  "createdAt": 1700524800000,
-  "expiresAt": 1732147200000,
-  "isValid": true
-}
+### 📦 Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Frontend (Next.js 16)                    │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
+│  │  Song List   │  │ Create Song  │  │ Song Details │      │
+│  │    Page      │  │     Form     │  │     Page     │      │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘      │
+│         │                  │                  │              │
+│         └──────────────────┼──────────────────┘              │
+│                            │                                 │
+└────────────────────────────┼─────────────────────────────────┘
+                             │
+                    ┌────────▼────────┐
+                    │   API Routes    │
+                    │  /api/songs/*   │
+                    └────────┬────────┘
+                             │
+              ┌──────────────┴──────────────┐
+              │                             │
+    ┌─────────▼─────────┐         ┌────────▼────────┐
+    │  Scroll Sepolia   │         │  Arkiv Network  │
+    │   (Blockchain)    │         │   (Mendoza)     │
+    │                   │         │                 │
+    │ ┌───────────────┐ │         │ ┌─────────────┐ │
+    │ │SplitTrack     │ │         │ │  Song       │ │
+    │ │Factory        │◄┼─────────┼─┤  Metadata   │ │
+    │ └───────┬───────┘ │         │ │  Entities   │ │
+    │         │         │         │ └─────────────┘ │
+    │    ┌────▼────┐    │         │                 │
+    │    │ SongNFT │    │         │ • TTL: 6 months │
+    │    └─────────┘    │         │ • Query filters │
+    │    ┌────────────┐ │         │ • Attributes    │
+    │    │Revenue     │ │         └─────────────────┘
+    │    │Splitter    │ │
+    │    └────────────┘ │
+    └───────────────────┘
+```
+
+### 🎨 User Flow
+
+1. **Connect Wallet** - MetaMask/WalletConnect
+2. **Create Song** - Title, collaborators, revenue %
+3. **Deploy Contracts** - Factory creates NFT + Splitter
+4. **Store Metadata** - Arkiv saves with 6-month TTL
+5. **View Songs** - Real-time list from Arkiv queries
+6. **Manage Revenue** - Automatic on-chain distribution
+
+---
+
+### 🔧 Arkiv Integration Details
+
+#### Features Used
+
+| Feature | Implementation | File |
+|---------|---------------|------|
+| **CRUD** | `createEntity()`, `getEntity()` | `SongMetadataService.ts` |
+| **Queries** | `buildQuery().where(eq(...))` | `/api/songs/list` |
+| **TTL** | 6-month expiration | All entities |
+| **Attributes** | songTitle, artist, nftContract, etc. | Entity creation |
+
+#### Code Example
+
+```typescript
+// Create entity with TTL
+const { entityKey, txHash } = await walletClient.createEntity({
+  payload: jsonToPayload(metadata),
+  contentType: 'application/json',
+  attributes: [
+    { key: 'type', value: 'song-metadata' },
+    { key: 'songTitle', value: metadata.songTitle },
+    { key: 'artist', value: metadata.artist }
+  ],
+  expiresIn: 15778800 // 6 months in seconds
+});
+
+// Query all songs
+const results = await publicClient.buildQuery()
+  .where(eq('type', 'song-metadata'))
+  .withPayload(true)
+  .fetch();
 ```
 
 ---
 
-#### `GET /api/songs/artist/:artistName`
-Get all songs by an artist.
+### 📱 API Reference
 
-#### `GET /api/collaborators/:entityKey`
-Get collaborators and revenue splits.
+#### Create Song
+```bash
+POST /api/songs
+Content-Type: application/json
 
-#### `GET /health`
-Health check endpoint.
+{
+  "songTitle": "Demo Track",
+  "artist": "Artist Name",
+  "genre": "Hip Hop",
+  "collaborators": [
+    {
+      "name": "Producer",
+      "role": "Productor",
+      "percentage": 50,
+      "walletAddress": "0x..."
+    },
+    {
+      "name": "Vocalist",
+      "role": "Vocalista", 
+      "percentage": 50,
+      "walletAddress": "0x..."
+    }
+  ]
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "txHash": "0x64a33...",
+    "blockNumber": 15027297,
+    "songNFT": "0xf0882...",
+    "revenueSplitter": "0xf4d12...",
+    "arkiv": {
+      "entityKey": "0xb6b04...",
+      "metadataUri": "arkiv://0xb6b04...",
+      "expiresAt": 1747836226912
+    }
+  }
+}
+```
+
+#### List All Songs
+```bash
+GET /api/songs/list
+```
+
+#### Get Song Details
+```bash
+GET /api/songs?entityKey=0xb6b04...
+```
+
+---
+
+### 🎯 Smart Contracts
+
+| Contract | Address | Purpose |
+|----------|---------|---------|
+| SplitTrackFactory | `0xE76920eaB8C76d6aa6191E3413DeF78073Fa0c66` | Deploy NFT + Splitter |
+| SongNFT | Deployed per song | ERC-721 ownership |
+| RevenueSplitter | Deployed per song | Automated revenue distribution |
+
+**Chain:** Scroll Sepolia (Chain ID: 534351)
+
+---
+
+### 🧪 Testing
+
+```bash
+# Run integration test
+npx tsx src/mimic-integration.ts
+
+# Simulate revenue distribution
+npx tsx src/simulate-mimic.ts
+
+# Test Arkiv CRUD
+npx tsx src/demo.ts
+```
+
+---
+
+### 📊 DevX Feedback for Arkiv
+
+See [ARKIV_DEVX_FEEDBACK.md](./ARKIV_DEVX_FEEDBACK.md) for:
+- ✅ What worked well
+- 🐛 Issues encountered (with reproducible steps)
+- 💡 Suggestions for improvement
+- 📈 Overall developer experience rating
+
+---
+
+### 🎥 Demo Video
+
+[Link to 2-3 minute demo video]
+
+**Showcases:**
+- Creating a collaborative song
+- Viewing metadata in Arkiv
+- Checking transaction on Scroll Sepolia
+- Real-time song list updates
+
+---
+
+### 🏗️ Tech Stack
+
+- **Frontend:** Next.js 16 (App Router), React 19, Tailwind CSS
+- **Web3:** wagmi v3, viem, ethers v6
+- **Storage:** Arkiv SDK v0.4.5 (Mendoza testnet)
+- **Blockchain:** Scroll Sepolia
+- **Smart Contracts:** Solidity 0.8.x
+- **Language:** TypeScript
+
+---
+
+### 📄 License
+
+MIT License - See [LICENSE](./LICENSE)
+
+---
+
+### 🙏 Acknowledgments
+
+Built for **Hackathon Tierra de Builders 2025**
+
+**Sponsors:**
+- Arkiv Network - Decentralized storage with TTL
+- Scroll - L2 scaling solution
+- Crossmint (planned) - Wallet abstraction
+
+---
+
+### 📞 Contact
+
+- **GitHub:** https://github.com/leitocam/BA-Hackathon
+- **Branch:** `trigo`
+- **Demo:** http://localhost:3000 (development)
+
+---
+
+## 🇪🇸 Español
+
+### Descripción General
+
+MusiciUS es una plataforma full-stack que permite a músicos crear NFTs colaborativos con división automática de ingresos. Construido sobre **Scroll Sepolia** con **Arkiv** para almacenamiento descentralizado de metadata y **contratos inteligentes on-chain** para distribución transparente de ingresos.
+
+### 🎯 Características Principales
+
+#### Integración con Arkiv (2+ Funcionalidades)
+1. **Operaciones CRUD** - Crear, leer y listar metadata de canciones
+2. **Consultas Avanzadas** - Filtrar por artista, género, colaboradores
+3. **Gestión de TTL** - Expiración automática a 6 meses con countdown visual
+4. **Relaciones Cross-entity** - Vincular canciones, colaboradores y contratos
+
+#### Integración con Smart Contracts
+- **Patrón Factory** - Deploy atómico de SongNFT + RevenueSplitter
+- **Splits Automatizados** - Distribución on-chain basada en porcentajes
+- **Arquitectura Event-driven** - Monitoreo y parsing de TX en tiempo real
+
+#### Aplicación Full-Stack
+- **Frontend Next.js 16** - UI moderna con wagmi/viem
+- **API Routes** - Backend de integración entre blockchain y Arkiv
+- **Actualizaciones en Tiempo Real** - Lista de canciones desde queries de Arkiv
+
+### 🚀 Inicio Rápido
+
+```bash
+# Clonar repositorio
+git clone https://github.com/leitocam/BA-Hackathon.git
+cd mi-proyecto-arkiv
+
+# Instalar dependencias
+npm install
+cd frontend && npm install
+
+# Configurar .env.local
+echo "PRIVATE_KEY=tu_clave_privada" > frontend/.env.local
+
+# Iniciar servidor
+cd frontend
+npm run dev
+```
+
+Abrir http://localhost:3000
+
+### 📊 Arquitectura
+
+Ver sección en inglés para diagrama completo.
+
+**Componentes principales:**
+- Frontend (Next.js) → API Routes → Arkiv + Scroll Sepolia
+- Factory contract despliega NFT + Splitter por canción
+- Metadata almacenada en Arkiv con TTL de 6 meses
+
+### 🎨 Flujo de Usuario
+
+1. Conectar billetera (MetaMask)
+2. Crear canción con colaboradores y %
+3. Deploy automático de contratos
+4. Almacenar metadata en Arkiv
+5. Ver lista de canciones en tiempo real
+6. Gestionar ingresos automáticamente
+
+### 📝 Feedback DevX de Arkiv
+
+Ver [ARKIV_DEVX_FEEDBACK.md](./ARKIV_DEVX_FEEDBACK.md) para reporte completo de experiencia de desarrollo.
+
+### 🎥 Video Demo
+
+[Link a video demo de 2-3 minutos]
+
+### 📄 Licencia
+
+MIT License
+
+---
+
+*Construido durante Hackathon Tierra de Builders 2025*
 
 ---
 
