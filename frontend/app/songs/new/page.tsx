@@ -1,90 +1,117 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { useAccount } from 'wagmi'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
-interface Contributor {
-  address: string
+interface TeamMember {
+  id: string
+  name: string
+  role: string
+  walletAddress: string
   percentage: number
 }
 
-export default function NewSongPage() {
-  const router = useRouter()
+const COMMON_ROLES = [
+  { value: 'Vocalista', emoji: '🎤' },
+  { value: 'Productor', emoji: '🎛️' },
+  { value: 'Beat Maker', emoji: '🥁' },
+  { value: 'Compositor', emoji: '✍️' },
+  { value: 'Guitarrista', emoji: '🎸' },
+  { value: 'Bajista', emoji: '🎸' },
+  { value: 'Baterista', emoji: '🥁' },
+  { value: 'DJ', emoji: '🎧' },
+  { value: 'Ingeniero de Mezcla', emoji: '🎚️' },
+  { value: 'Diseñador de Arte', emoji: '🎨' },
+]
+
+export default function CreateSongPage() {
   const { isConnected, address } = useAccount()
+  const router = useRouter()
+  
   const [title, setTitle] = useState('')
   const [metadataUri, setMetadataUri] = useState('')
-  const [contributors, setContributors] = useState<Contributor[]>([
-    { address: '', percentage: 0 }
+  const [team, setTeam] = useState<TeamMember[]>([
+    {
+      id: '1',
+      name: '',
+      role: '',
+      walletAddress: '',
+      percentage: 0,
+    }
   ])
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isCreating, setIsCreating] = useState(false)
+  const [currentStep, setCurrentStep] = useState<'info' | 'team'>('info')
 
-  // Calcular el total de porcentajes
-  const totalPercentage = contributors.reduce((sum, c) => sum + Number(c.percentage || 0), 0)
-  const isValidPercentage = totalPercentage === 100
+  const totalPercentage = team.reduce((sum, member) => sum + (member.percentage || 0), 0)
+  const isValid = totalPercentage === 100 && team.every(m => m.name && m.role && m.walletAddress && m.percentage > 0)
 
-  const addContributor = () => {
-    setContributors([...contributors, { address: '', percentage: 0 }])
+  const addTeamMember = () => {
+    setTeam([...team, {
+      id: Date.now().toString(),
+      name: '',
+      role: '',
+      walletAddress: '',
+      percentage: 0,
+    }])
   }
 
-  const removeContributor = (index: number) => {
-    if (contributors.length > 1) {
-      setContributors(contributors.filter((_, i) => i !== index))
+  const removeTeamMember = (id: string) => {
+    if (team.length > 1) {
+      setTeam(team.filter(member => member.id !== id))
     }
   }
 
-  const updateContributor = (index: number, field: 'address' | 'percentage', value: string | number) => {
-    const updated = [...contributors]
-    updated[index] = { ...updated[index], [field]: value }
-    setContributors(updated)
+  const updateTeamMember = (id: string, field: keyof TeamMember, value: string | number) => {
+    setTeam(team.map(member => 
+      member.id === id ? { ...member, [field]: value } : member
+    ))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!isValidPercentage) {
-      alert('La suma de porcentajes debe ser exactamente 100%')
+    if (!isValid || !title || !metadataUri) {
+      alert('Por favor completá todos los campos correctamente')
       return
     }
 
-    if (!title || !metadataUri) {
-      alert('Por favor completa todos los campos')
-      return
-    }
-
-    // Validar direcciones
-    const invalidAddress = contributors.find(c => !c.address || !c.address.startsWith('0x'))
-    if (invalidAddress) {
-      alert('Todas las direcciones deben ser válidas (empezar con 0x)')
-      return
-    }
-
-    setIsSubmitting(true)
-    
+    setIsCreating(true)
     try {
-      // TODO: Integrar con el contrato Factory
-      console.log('Minting song:', { title, metadataUri, contributors })
-      
-      // Simular llamada al contrato
+      // TODO: Integrar con contrato SplitTrackFactory
+      console.log('Creating song:', { title, metadataUri, team })
       await new Promise(resolve => setTimeout(resolve, 2000))
-      
-      // Redirigir al detalle (mock)
+      alert('🎉 ¡Canción creada exitosamente!')
       router.push('/songs')
     } catch (error) {
-      console.error('Error minting song:', error)
+      console.error('Error creating song:', error)
       alert('Error al crear la canción')
     } finally {
-      setIsSubmitting(false)
+      setIsCreating(false)
     }
+  }
+
+  const distributeEqually = () => {
+    const equalPercentage = Math.floor(100 / team.length)
+    const remainder = 100 - (equalPercentage * team.length)
+    
+    setTeam(team.map((member, index) => ({
+      ...member,
+      percentage: index === 0 ? equalPercentage + remainder : equalPercentage
+    })))
   }
 
   if (!isConnected) {
     return (
       <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center" style={{ background: '#000000' }}>
         <div className="text-center">
-          <p className="text-[18px] mb-4" style={{ color: '#C2CAD7' }}>
-            Conectá tu wallet para crear una canción
+          <div className="text-[64px] mb-6">🎵</div>
+          <h2 className="text-[32px] font-bold mb-4" style={{ color: '#FFFFFF' }}>
+            Conectá tu billetera
+          </h2>
+          <p className="text-[18px] mb-8" style={{ color: '#C2CAD7' }}>
+            Para crear una canción, primero necesitás conectar tu billetera
           </p>
           <Link href="/">
             <button 
@@ -107,199 +134,397 @@ export default function NewSongPage() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl">
         {/* Header */}
         <div className="mb-8">
-          <Link href="/" className="inline-flex items-center gap-2 text-[14px] mb-4" style={{ color: '#8E8E93' }}>
+          <Link href="/songs" className="inline-flex items-center gap-2 text-[14px] mb-4" style={{ color: '#8E8E93' }}>
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
             Volver
           </Link>
-          <h1 className="text-[36px] font-bold mb-2" style={{ color: '#FFFFFF' }}>
+          
+          <h1 className="text-[40px] font-bold mb-3" style={{ color: '#FFFFFF' }}>
             Crear nueva canción
           </h1>
-          <p className="text-[16px]" style={{ color: '#C2CAD7' }}>
-            Minteá tu canción y definí cómo se dividirán los ingresos
+          <p className="text-[18px]" style={{ color: '#C2CAD7' }}>
+            Registrá tu música y armá tu equipo. Es más simple de lo que pensás.
           </p>
         </div>
 
-        {/* Formulario */}
-        <form onSubmit={handleSubmit}>
-          <div 
-            className="rounded-[24px] p-8 border mb-6"
+        {/* Progress Steps */}
+        <div className="flex items-center gap-4 mb-8">
+          <button
+            onClick={() => setCurrentStep('info')}
+            className={`flex-1 h-[60px] rounded-[16px] border transition-all ${currentStep === 'info' ? 'border-[#FC3C44]' : 'border-transparent'}`}
             style={{
-              background: 'rgba(28, 28, 30, 0.8)',
-              backdropFilter: 'blur(20px)',
-              borderColor: 'rgba(255, 255, 255, 0.1)',
+              background: currentStep === 'info' 
+                ? 'linear-gradient(135deg, rgba(252, 60, 68, 0.15) 0%, rgba(249, 76, 87, 0.1) 100%)'
+                : 'rgba(28, 28, 30, 0.6)',
             }}
           >
-            {/* Título */}
-            <div className="mb-6">
-              <label className="block text-[14px] font-medium mb-2" style={{ color: '#FFFFFF' }}>
-                Título de la canción *
-              </label>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Ej: Mi Primera Canción"
-                className="w-full h-[48px] px-4 rounded-[12px] border text-[15px] transition-all"
+            <div className="flex items-center justify-center gap-3">
+              <div 
+                className="w-8 h-8 rounded-full flex items-center justify-center text-[14px] font-bold"
                 style={{
-                  background: 'rgba(44, 44, 46, 0.8)',
-                  borderColor: 'rgba(255, 255, 255, 0.1)',
+                  background: currentStep === 'info' ? '#FC3C44' : 'rgba(255, 255, 255, 0.1)',
                   color: '#FFFFFF',
                 }}
-                required
-              />
+              >
+                1
+              </div>
+              <span className="text-[15px] font-semibold" style={{ color: '#FFFFFF' }}>
+                Info de la canción
+              </span>
             </div>
+          </button>
 
-            {/* Metadata URI */}
-            <div className="mb-6">
-              <label className="block text-[14px] font-medium mb-2" style={{ color: '#FFFFFF' }}>
-                Metadata URI (Arkiv) *
-              </label>
-              <input
-                type="text"
-                value={metadataUri}
-                onChange={(e) => setMetadataUri(e.target.value)}
-                placeholder="ipfs://... o https://..."
-                className="w-full h-[48px] px-4 rounded-[12px] border text-[15px] transition-all"
+          <button
+            onClick={() => title && metadataUri && setCurrentStep('team')}
+            disabled={!title || !metadataUri}
+            className={`flex-1 h-[60px] rounded-[16px] border transition-all ${currentStep === 'team' ? 'border-[#FC3C44]' : 'border-transparent'}`}
+            style={{
+              background: currentStep === 'team' 
+                ? 'linear-gradient(135deg, rgba(252, 60, 68, 0.15) 0%, rgba(249, 76, 87, 0.1) 100%)'
+                : 'rgba(28, 28, 30, 0.6)',
+              opacity: (!title || !metadataUri) ? 0.5 : 1,
+            }}
+          >
+            <div className="flex items-center justify-center gap-3">
+              <div 
+                className="w-8 h-8 rounded-full flex items-center justify-center text-[14px] font-bold"
                 style={{
-                  background: 'rgba(44, 44, 46, 0.8)',
-                  borderColor: 'rgba(255, 255, 255, 0.1)',
+                  background: currentStep === 'team' ? '#FC3C44' : 'rgba(255, 255, 255, 0.1)',
                   color: '#FFFFFF',
                 }}
-                required
-              />
-              <p className="text-[12px] mt-1" style={{ color: '#8E8E93' }}>
-                URL donde está almacenada la metadata de tu canción
-              </p>
+              >
+                2
+              </div>
+              <span className="text-[15px] font-semibold" style={{ color: '#FFFFFF' }}>
+                Armá tu equipo
+              </span>
             </div>
+          </button>
+        </div>
 
-            {/* Contribuyentes */}
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <label className="text-[14px] font-medium" style={{ color: '#FFFFFF' }}>
-                  Contribuyentes *
-                </label>
-                <div 
-                  className="px-3 py-1.5 rounded-full text-[13px] font-medium"
+        <form onSubmit={handleSubmit}>
+          {/* Step 1: Song Info */}
+          {currentStep === 'info' && (
+            <div 
+              className="rounded-[24px] p-8 border mb-6"
+              style={{
+                background: 'rgba(28, 28, 30, 0.8)',
+                backdropFilter: 'blur(20px)',
+                borderColor: 'rgba(255, 255, 255, 0.1)',
+              }}
+            >
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-[15px] font-semibold mb-2" style={{ color: '#FFFFFF' }}>
+                    Título de la canción <span style={{ color: '#FC3C44' }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Ej: Summer Vibes"
+                    className="w-full h-[52px] px-4 rounded-[12px] border text-[16px]"
+                    style={{
+                      background: 'rgba(44, 44, 46, 0.8)',
+                      borderColor: 'rgba(255, 255, 255, 0.2)',
+                      color: '#FFFFFF',
+                    }}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[15px] font-semibold mb-2" style={{ color: '#FFFFFF' }}>
+                    Link de Metadata (Arkiv) <span style={{ color: '#FC3C44' }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={metadataUri}
+                    onChange={(e) => setMetadataUri(e.target.value)}
+                    placeholder="ipfs://QmXxxx..."
+                    className="w-full h-[52px] px-4 rounded-[12px] border text-[16px] font-mono"
+                    style={{
+                      background: 'rgba(44, 44, 46, 0.8)',
+                      borderColor: 'rgba(255, 255, 255, 0.2)',
+                      color: '#FFFFFF',
+                    }}
+                    required
+                  />
+                  <p className="text-[13px] mt-2" style={{ color: '#8E8E93' }}>
+                    💡 Subí tu metadata a <a href="https://arkiv.org" target="_blank" rel="noopener noreferrer" className="underline" style={{ color: '#FC3C44' }}>Arkiv</a> y pegá el link acá
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setCurrentStep('team')}
+                  disabled={!title || !metadataUri}
+                  className="w-full h-[56px] rounded-full text-[16px] font-semibold transition-all disabled:opacity-40"
                   style={{
-                    background: isValidPercentage 
-                      ? 'rgba(52, 199, 89, 0.15)' 
-                      : 'rgba(255, 59, 48, 0.15)',
-                    color: isValidPercentage ? '#34C759' : '#FF3B30',
+                    background: 'linear-gradient(135deg, #FC3C44 0%, #F94C57 100%)',
+                    color: '#FFFFFF',
                   }}
                 >
-                  Total: {totalPercentage}%
+                  Continuar → Armar equipo
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 2: Team */}
+          {currentStep === 'team' && (
+            <>
+              <div 
+                className="rounded-[24px] p-8 border mb-6"
+                style={{
+                  background: 'rgba(28, 28, 30, 0.8)',
+                  backdropFilter: 'blur(20px)',
+                  borderColor: 'rgba(255, 255, 255, 0.1)',
+                }}
+              >
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h2 className="text-[24px] font-bold" style={{ color: '#FFFFFF' }}>
+                      👥 Tu equipo
+                    </h2>
+                    <p className="text-[14px] mt-1" style={{ color: '#C2CAD7' }}>
+                      Agregá a todos los que participaron en esta canción
+                    </p>
+                  </div>
+                  
+                  <button
+                    type="button"
+                    onClick={distributeEqually}
+                    className="px-4 py-2 rounded-[10px] text-[13px] font-medium border transition-all"
+                    style={{
+                      background: 'rgba(52, 199, 89, 0.1)',
+                      borderColor: 'rgba(52, 199, 89, 0.3)',
+                      color: '#34C759',
+                    }}
+                  >
+                    ⚡ Repartir en partes iguales
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  {team.map((member, index) => (
+                    <div
+                      key={member.id}
+                      className="p-6 rounded-[16px] border"
+                      style={{
+                        background: 'rgba(44, 44, 46, 0.6)',
+                        borderColor: 'rgba(255, 255, 255, 0.1)',
+                      }}
+                    >
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-8 h-8 rounded-full flex items-center justify-center text-[14px] font-bold"
+                            style={{
+                              background: 'linear-gradient(135deg, #FC3C44 0%, #FF6B9D 100%)',
+                              color: '#FFFFFF',
+                            }}
+                          >
+                            {index + 1}
+                          </div>
+                          <span className="text-[15px] font-semibold" style={{ color: '#FFFFFF' }}>
+                            Colaborador {index + 1}
+                          </span>
+                        </div>
+                        
+                        {team.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => removeTeamMember(member.id)}
+                            className="text-[13px] px-3 py-1 rounded-[8px] transition-all"
+                            style={{
+                              background: 'rgba(255, 59, 48, 0.1)',
+                              color: '#FF3B30',
+                            }}
+                          >
+                            Eliminar
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                        <div>
+                          <label className="block text-[13px] font-medium mb-2" style={{ color: '#C2CAD7' }}>
+                            Nombre o Alias
+                          </label>
+                          <input
+                            type="text"
+                            value={member.name}
+                            onChange={(e) => updateTeamMember(member.id, 'name', e.target.value)}
+                            placeholder="Ej: Juan Pérez"
+                            className="w-full h-[44px] px-3 rounded-[10px] border text-[14px]"
+                            style={{
+                              background: 'rgba(28, 28, 30, 0.8)',
+                              borderColor: 'rgba(255, 255, 255, 0.2)',
+                              color: '#FFFFFF',
+                            }}
+                            required
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[13px] font-medium mb-2" style={{ color: '#C2CAD7' }}>
+                            Rol en la canción
+                          </label>
+                          <select
+                            value={member.role}
+                            onChange={(e) => updateTeamMember(member.id, 'role', e.target.value)}
+                            className="w-full h-[44px] px-3 rounded-[10px] border text-[14px]"
+                            style={{
+                              background: 'rgba(28, 28, 30, 0.8)',
+                              borderColor: 'rgba(255, 255, 255, 0.2)',
+                              color: '#FFFFFF',
+                            }}
+                            required
+                          >
+                            <option value="">Seleccioná un rol...</option>
+                            {COMMON_ROLES.map(role => (
+                              <option key={role.value} value={role.value}>
+                                {role.emoji} {role.value}
+                              </option>
+                            ))}
+                            <option value="Otro">✨ Otro</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="mb-4">
+                        <label className="block text-[13px] font-medium mb-2" style={{ color: '#C2CAD7' }}>
+                          Dirección de billetera
+                          <span className="ml-2 text-[12px]" style={{ color: '#8E8E93' }}>
+                            (donde recibirá los pagos)
+                          </span>
+                        </label>
+                        <input
+                          type="text"
+                          value={member.walletAddress}
+                          onChange={(e) => updateTeamMember(member.id, 'walletAddress', e.target.value)}
+                          placeholder="0x..."
+                          className="w-full h-[44px] px-3 rounded-[10px] border text-[14px] font-mono"
+                          style={{
+                            background: 'rgba(28, 28, 30, 0.8)',
+                            borderColor: 'rgba(255, 255, 255, 0.2)',
+                            color: '#FFFFFF',
+                          }}
+                          required
+                        />
+                        {index === 0 && (
+                          <button
+                            type="button"
+                            onClick={() => address && updateTeamMember(member.id, 'walletAddress', address)}
+                            className="text-[12px] mt-2 px-3 py-1 rounded-[6px]"
+                            style={{
+                              background: 'rgba(252, 60, 68, 0.1)',
+                              color: '#FC3C44',
+                            }}
+                          >
+                            Usar mi dirección
+                          </button>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="block text-[13px] font-medium mb-2" style={{ color: '#C2CAD7' }}>
+                          Porcentaje de ganancias: <strong style={{ color: '#FC3C44' }}>{member.percentage}%</strong>
+                        </label>
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={member.percentage}
+                          onChange={(e) => updateTeamMember(member.id, 'percentage', parseInt(e.target.value))}
+                          className="w-full h-2 rounded-full appearance-none cursor-pointer"
+                          style={{
+                            background: `linear-gradient(to right, #FC3C44 0%, #FC3C44 ${member.percentage}%, rgba(255, 255, 255, 0.1) ${member.percentage}%, rgba(255, 255, 255, 0.1) 100%)`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={addTeamMember}
+                  className="w-full h-[48px] rounded-[12px] text-[14px] font-medium border transition-all mt-4"
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    borderColor: 'rgba(255, 255, 255, 0.2)',
+                    color: '#FFFFFF',
+                  }}
+                >
+                  + Agregar otro colaborador
+                </button>
+              </div>
+
+              {/* Validation Badge */}
+              <div 
+                className="rounded-[16px] p-6 border mb-6"
+                style={{
+                  background: totalPercentage === 100 
+                    ? 'rgba(52, 199, 89, 0.1)' 
+                    : totalPercentage > 100
+                    ? 'rgba(255, 59, 48, 0.1)'
+                    : 'rgba(255, 214, 10, 0.1)',
+                  borderColor: totalPercentage === 100 
+                    ? 'rgba(52, 199, 89, 0.3)' 
+                    : totalPercentage > 100
+                    ? 'rgba(255, 59, 48, 0.3)'
+                    : 'rgba(255, 214, 10, 0.3)',
+                }}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="text-[32px]">
+                      {totalPercentage === 100 ? '✅' : totalPercentage > 100 ? '❌' : '⚠️'}
+                    </div>
+                    <div>
+                      <p className="text-[16px] font-semibold" style={{ 
+                        color: totalPercentage === 100 ? '#34C759' : totalPercentage > 100 ? '#FF3B30' : '#FFD60A' 
+                      }}>
+                        {totalPercentage === 100 
+                          ? '¡Perfecto! Los porcentajes suman 100%' 
+                          : totalPercentage > 100
+                          ? 'Los porcentajes exceden el 100%'
+                          : 'Los porcentajes deben sumar 100%'
+                        }
+                      </p>
+                      <p className="text-[14px]" style={{ color: '#C2CAD7' }}>
+                        Total actual: <strong>{totalPercentage}%</strong>
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div className="space-y-3">
-                {contributors.map((contributor, index) => (
-                  <div 
-                    key={index}
-                    className="flex flex-col sm:flex-row gap-3 p-4 rounded-[12px] border"
-                    style={{
-                      background: 'rgba(44, 44, 46, 0.6)',
-                      borderColor: 'rgba(255, 255, 255, 0.1)',
-                    }}
-                  >
-                    <div className="flex-1">
-                      <input
-                        type="text"
-                        value={contributor.address}
-                        onChange={(e) => updateContributor(index, 'address', e.target.value)}
-                        placeholder="0x..."
-                        className="w-full h-[44px] px-3 rounded-[10px] border text-[14px]"
-                        style={{
-                          background: 'rgba(58, 58, 60, 0.8)',
-                          borderColor: 'rgba(255, 255, 255, 0.1)',
-                          color: '#FFFFFF',
-                        }}
-                        required
-                      />
-                    </div>
-                    <div className="flex gap-2">
-                      <input
-                        type="number"
-                        value={contributor.percentage || ''}
-                        onChange={(e) => updateContributor(index, 'percentage', Number(e.target.value))}
-                        placeholder="%"
-                        min="0"
-                        max="100"
-                        className="w-20 h-[44px] px-3 rounded-[10px] border text-[14px] text-center"
-                        style={{
-                          background: 'rgba(58, 58, 60, 0.8)',
-                          borderColor: 'rgba(255, 255, 255, 0.1)',
-                          color: '#FFFFFF',
-                        }}
-                        required
-                      />
-                      {contributors.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeContributor(index)}
-                          className="w-[44px] h-[44px] rounded-[10px] transition-all"
-                          style={{
-                            background: 'rgba(255, 59, 48, 0.1)',
-                            color: '#FF3B30',
-                          }}
-                        >
-                          <svg className="w-5 h-5 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
+              {/* Submit Button */}
               <button
-                type="button"
-                onClick={addContributor}
-                className="mt-3 w-full h-[44px] rounded-[12px] border text-[14px] font-medium transition-all"
+                type="submit"
+                disabled={!isValid || isCreating}
+                className="w-full h-[60px] rounded-full text-[17px] font-bold transition-all disabled:opacity-40"
                 style={{
-                  background: 'transparent',
-                  borderColor: 'rgba(255, 255, 255, 0.2)',
-                  color: '#C2CAD7',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'transparent';
+                  background: isValid 
+                    ? 'linear-gradient(135deg, #FC3C44 0%, #F94C57 50%, #FF6B9D 100%)'
+                    : 'rgba(142, 142, 147, 0.3)',
+                  color: '#FFFFFF',
+                  boxShadow: isValid ? '0 8px 24px -6px rgba(252, 60, 68, 0.6)' : 'none',
                 }}
               >
-                + Agregar contribuyente
+                {isCreating ? '⏳ Creando canción...' : '🎵 Crear canción y registrar en blockchain'}
               </button>
-            </div>
-          </div>
 
-          {/* Submit Button */}
-          <button
-            type="submit"
-            disabled={!isValidPercentage || isSubmitting}
-            className="w-full h-[56px] rounded-full text-[16px] font-semibold transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed"
-            style={{
-              background: isValidPercentage 
-                ? 'linear-gradient(135deg, #FC3C44 0%, #F94C57 50%, #FF6B9D 100%)'
-                : 'rgba(44, 44, 46, 0.8)',
-              color: '#FFFFFF',
-              boxShadow: isValidPercentage ? '0 8px 24px -6px rgba(252, 60, 68, 0.6)' : 'none',
-            }}
-          >
-            {isSubmitting ? (
-              <span className="flex items-center justify-center gap-2">
-                <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Minteando...
-              </span>
-            ) : (
-              '🎵 Mintear canción + crear splitter'
-            )}
-          </button>
+              <p className="text-[13px] text-center mt-4" style={{ color: '#8E8E93' }}>
+                Se creará un contrato inteligente que distribuirá automáticamente las ganancias
+              </p>
+            </>
+          )}
         </form>
       </div>
     </div>
